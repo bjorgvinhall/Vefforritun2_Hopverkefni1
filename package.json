@@ -1,8 +1,8 @@
 {
-  "name": "v4-synilausn",
+  "name": "Hopverkefni 1",
   "version": "1.0.0",
-  "description": "Sýnilausn á verkefni 4",
-  "main": "index.js",
+  "description": "Vefþjónusta fyrir vefbúð",
+  "main": "app.js",
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
@@ -14,8 +14,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^3.0.4",
     "dotenv": "6.2.0",
     "express": "4.16.4",
+    "express-session": "^1.15.6",
+    "express-validator": "^5.3.1",
+    "faker": "^4.1.0",
+    "passport": "^0.4.0",
+    "passport-local": "^1.0.0",
     "pg": "7.8.0",
     "validator": "^10.11.0",
     "xss": "^1.0.3"
