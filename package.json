@@ -1,0 +1,29 @@
+{
+  "name": "v4-synilausn",
+  "version": "1.0.0",
+  "description": "Sýnilausn á verkefni 4",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app.js",
+    "start": "node app.js",
+    "setup": "node setup.js",
+    "eslint": "eslint *.js",
+    "test": "npm run eslint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "6.2.0",
+    "express": "4.16.4",
+    "pg": "7.8.0",
+    "validator": "^10.11.0",
+    "xss": "^1.0.3"
+  },
+  "devDependencies": {
+    "eslint": "5.14.1",
+    "eslint-config-airbnb-base": "13.1.0",
+    "eslint-plugin-import": "2.16.0",
+    "nodemon": "1.18.10"
+  }
+}
