@@ -12,11 +12,11 @@ const readFileAsync = util.promisify(fs.readFile);
 async function main() {
   console.info(`Set upp gagnagrunn á ${connectionString}`);
   // droppa töflum ef til
-  await query('DROP TABLE IF EXISTS categories');
-  await query('DROP TABLE IF EXISTS products');
-  await query('DROP TABLE IF EXISTS users');
-  await query('DROP TABLE IF EXISTS cart');
   await query('DROP TABLE IF EXISTS cartItems');
+  await query('DROP TABLE IF EXISTS cart');
+  await query('DROP TABLE IF EXISTS users');
+  await query('DROP TABLE IF EXISTS products');
+  await query('DROP TABLE IF EXISTS categories');
   console.info('Töflum eytt');
 
   // búa til töflur út frá skema
