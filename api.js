@@ -125,5 +125,12 @@ router.get('/:id', catchErrors(todoRoute));
 router.post('/', catchErrors(createRoute));
 router.patch('/:id', catchErrors(patchRoute));
 router.delete('/:id', catchErrors(deleteRoute));
+router.get('/users/', catchErrors(usersGet));
+router.get('/users/:id', catchErrors(usersGetId));
+router.patch('/users/:id', catchErrors(usersPatchId));
+router.post('/users/register', catchErrors(usersPostRegister));
+router.post('/users/login', catchErrors(usersPostLogin));
+router.get('/users/me', catchErrors(usersGetMe));
+router.patch('/users/me', catchErrors(usersPatchMe));
 
 module.exports = router;
