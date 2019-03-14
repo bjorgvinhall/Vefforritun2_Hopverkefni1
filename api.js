@@ -120,11 +120,6 @@ async function deleteRoute(req, res) {
   return res.status(404).json({ error: 'Item not found' });
 }
 
-router.get('/', catchErrors(listRoute));
-router.get('/:id', catchErrors(todoRoute));
-router.post('/', catchErrors(createRoute));
-router.patch('/:id', catchErrors(patchRoute));
-router.delete('/:id', catchErrors(deleteRoute));
 router.get('/users/', catchErrors(usersGet));
 router.get('/users/:id', catchErrors(usersGetId));
 router.patch('/users/:id', catchErrors(usersPatchId));
