@@ -1,5 +1,5 @@
-
 const { Client } = require('pg');
+require('dotenv').config();
 
 /**
  * Execute an SQL query.
@@ -11,12 +11,10 @@ const { Client } = require('pg');
  */
 async function query(sqlQuery, values = []) {
   const connectionString = process.env.DATABASE_URL;
-
   const client = new Client({ connectionString });
   await client.connect();
 
   let result;
-
   try {
     result = await client.query(sqlQuery, values);
   } catch (err) {
