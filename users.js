@@ -99,6 +99,12 @@ WHERE id = $2`;
   return result;
 }
 
+async function comparePasswords(hash, password) {
+  const result = await bcrypt.compare(hash, password);
+
+  return result;
+}
+
 module.exports = {
   findByUsername,
   findById,
@@ -108,4 +114,5 @@ module.exports = {
   deserializeUser,
   users,
   setAdmin,
+  comparePasswords,
 };
