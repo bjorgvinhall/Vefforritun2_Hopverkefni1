@@ -2,16 +2,8 @@
 
 const express = require('express');
 
-/* const {
-  listTodos,
-  createTodo,
-  readTodo,
-  updateTodo,
-  deleteTodo,
-} = require('./todos'); */
-
 const {
-  listCategories,
+  getProducts,
   getProductId,
   createProduct,
   updateProduct,
@@ -22,6 +14,7 @@ const {
   updateCategory,
   deleteCategory,
 } = require('./products');
+
 const {
   usersList,
   userList,
@@ -33,7 +26,7 @@ const {
 
 } = require('./users');
 
-const {
+/* const {
   productsList,
   productPost,
   productList,
@@ -41,7 +34,7 @@ const {
   productDelete,
 } = require('./products');
 
-/* const {
+const {
   categoriesList,
   categoriesPost,
   categoryList,
@@ -75,7 +68,7 @@ const router = express.Router();
 async function productsGet(req, res) {
   const { order, category } = req.query;
 
-  const result = await listCategories(order, category);
+  const result = await getProducts(order, category);
 
   return res.json(result);
 }
@@ -212,104 +205,6 @@ async function categoriesDelete(req, res) {
   return res.status(404).json({ error: 'Item not found' });
 }
 
-/**
- * Route handler fyrir lista af todods gegnum GET.
- *
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {array} Fylki af todos
- */
-async function listRoute(req, res) {
-  const { completed, order } = req.query;
-
-  const todos = await listTodos(order, completed);
-
-  return res.json(todos);
-}
-
-/**
- * Route handler til að búa til todo gegnum POST.
- *
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Todo sem búið var til eða villur
- */
-async function createRoute(req, res) {
-  const { title, due, position } = req.body;
-
-  const result = await createTodo({ title, due, position });
-
-  if (!result.success) {
-    return res.status(400).json(result.validation);
-  }
-
-  return res.status(201).json(result.item);
-}
-
-/**
- * Route handler fyrir stakt todo gegnum GET.
- *
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Todo eða villa
- */
-async function todoRoute(req, res) {
-  const { id } = req.params;
-
-  const todo = await readTodo(id);
-
-  if (todo) {
-    return res.json(todo);
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
-}
-
-/**
- * Route handler til að breyta todo gegnum PATCH.
- *
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Breytt todo eða villa
- */
-async function patchRoute(req, res) {
-  const { id } = req.params;
-  const { title, due, position, completed } = req.body;
-
-  const item = { title, due, position, completed };
-
-  const result = await updateTodo(id, item);
-
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
-    return res.status(404).json({ error: 'Item not found' });
-  }
-
-  return res.status(201).json(result.item);
-}
-
-/**
- * Route handler til að eyða todo gegnum DELETE.
- *
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Engu ef eytt, annars villu
- */
-async function deleteRoute(req, res) {
-  const { id } = req.params;
-
-  const deleted = await deleteTodo(id);
-
-  if (deleted) {
-    return res.status(204).json({});
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
-}
-
 router.get('/users/', ensureAdmin, catchErrors(usersList));
 router.get('/users/:id', ensureAdmin, catchErrors(userList));
 router.patch('/users/:id', ensureAdmin, catchErrors(usersPatch));
@@ -318,17 +213,17 @@ router.post('/users/login', catchErrors(usersPostLogin));
 router.get('/users/me', ensureLoggedIn, catchErrors(usersGetMe));
 router.patch('/users/me', ensureLoggedIn, catchErrors(usersPatchMe));
 
-router.get('/products', catchErrors(productsList));
-router.post('/products', ensureAdmin, catchErrors(productPost));
-router.get('/products/:id', catchErrors(productList));
-router.patch('/products/:id', ensureAdmin, catchErrors(productPatch));
-router.delete('/products/:id', ensureAdmin, catchErrors(productDelete));
+router.get('/products/', catchErrors(productsGet));
+router.get('/products/:id', catchErrors(productsGetId));
+router.post('/products/', ensureAdmin, catchErrors(productsPost));
+router.patch('/products/:id', ensureAdmin, catchErrors(productsPatch));
+router.delete('/products/:id', ensureAdmin, catchErrors(productsDelete));
 
-/* router.get('/categories', catchErrors(categoriesList));
-router.post('/categories', ensureAdmin, catchErrors(categoriesPost));
-router.get('/categories/:id', catchErrors(categoryList));
+router.get('/categories/', catchErrors(categoriesGet));
+router.get('/categories/:id', catchErrors(categoriesGetId));
+router.post('/categories/', ensureAdmin, catchErrors(categoriesPost));
 router.patch('/categories/:id', ensureAdmin, catchErrors(categoriesPatch));
-router.delete('/categories/:id', ensureAdmin, catchErrors(categoriesDelete)); */
+router.delete('/categories/:id', ensureAdmin, catchErrors(categoriesDelete));
 
 router.get('/cart', ensureLoggedIn, catchErrors(cartsList));
 router.post('/cart', ensureLoggedIn, catchErrors(cartAdd));
@@ -339,18 +234,5 @@ router.delete('/cart/:id', ensureLoggedIn, catchErrors(cartDelete));
 router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
 router.post('/orders', ensureLoggedIn, catchErrors(ordersPost));
 router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList));
-
-
-router.get('/products/', catchErrors(productsGet));
-router.get('/products/:id', catchErrors(productsGetId));
-router.post('/products/', catchErrors(productsPost));
-router.patch('/products/:id', catchErrors(productsPatch));
-router.delete('/products/:id', catchErrors(productsDelete));
-router.get('/categories/', catchErrors(categoriesGet));
-router.get('/categories/:id', catchErrors(categoriesGetId));
-router.post('/categories/', catchErrors(categoriesPost));
-router.patch('/categories/:id', catchErrors(categoriesPatch));
-router.delete('/categories/:id', catchErrors(categoriesDelete));
-
 
 module.exports = router;
