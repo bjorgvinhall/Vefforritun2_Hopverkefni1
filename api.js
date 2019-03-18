@@ -2,13 +2,26 @@
 
 const express = require('express');
 
-const {
+/* const {
   listTodos,
   createTodo,
   readTodo,
   updateTodo,
   deleteTodo,
-} = require('./todos');
+} = require('./todos'); */
+
+const {
+  listCategories,
+  getProductId,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getCategories,
+  getCategoriesId,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} = require('./products');
 
 const router = express.Router();
 
@@ -20,6 +33,146 @@ const router = express.Router();
  */
 function catchErrors(fn) {
   return (req, res, next) => fn(req, res, next).catch(next);
+}
+
+async function productsGet(req, res) {
+  const { order, category } = req.query;
+
+  const result = await listCategories(order, category);
+
+  return res.json(result);
+}
+
+async function productsGetId(req, res) {
+  const { id } = req.params;
+
+  const result = await getProductId(id);
+
+  if (result) {
+    return res.json(result);
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function productsPost(req, res) {
+  const { title, price, text, imgurl, category } = req.body;
+
+  const result = await createProduct({ title, price, text, imgurl, category });
+
+  if (!result.success && result.existingProduct) {
+    return res.status(400).json({ error: 'Product already exists' });
+  }
+
+  if (!result.success && !result.existingCategory && result.validation.length === 0) {
+    return res.status(400).json({ error: 'Category does not exist' });
+  }
+
+  if (!result.success) {
+    return res.status(400).json(result.validation);
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function productsPatch(req, res) {
+  const { id } = req.params;
+  const { title, price, text, imgurl, category } = req.body;
+
+  const item = { title, price, text, imgurl, category };
+
+  const result = await updateProduct(id, item);
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function productsDelete(req, res) {
+  const { id } = req.params;
+
+  const deleted = await deleteProduct(id);
+
+  if (deleted) {
+    return res.status(204).json({});
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function categoriesGet(req, res) {
+  const result = await getCategories();
+
+  return res.json(result);
+}
+
+async function categoriesGetId(req, res) {
+  const { id } = req.params;
+
+  const result = await getCategoriesId(id);
+
+  if (result) {
+    return res.json(result);
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function categoriesPost(req, res) {
+  const { category } = req.body;
+
+  const result = await createCategory({ category });
+
+  if (result.existing) {
+    return res.status(400).json({ error: 'Category already exists' });
+  }
+
+  if (!result.success) {
+    return res.status(400).json(result.validation);
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function categoriesPatch(req, res) {
+  const { id } = req.params;
+  const { category } = req.body;
+
+  const item = { category };
+
+  const result = await updateCategory(id, item);
+
+  if (!result.success && result.existing) {
+    return res.status(400).json({ error: 'Category already exists' });
+  }
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function categoriesDelete(req, res) {
+  const { id } = req.params;
+
+  const deleted = await deleteCategory(id);
+
+  if (deleted) {
+    return res.status(204).json({});
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
 }
 
 /**
@@ -127,5 +280,17 @@ router.post('/users/register', catchErrors(usersPostRegister));
 router.post('/users/login', catchErrors(usersPostLogin));
 router.get('/users/me', catchErrors(usersGetMe));
 router.patch('/users/me', catchErrors(usersPatchMe));
+
+router.get('/products/', catchErrors(productsGet));
+router.get('/products/:id', catchErrors(productsGetId));
+router.post('/products/', catchErrors(productsPost));
+router.patch('/products/:id', catchErrors(productsPatch));
+router.delete('/products/:id', catchErrors(productsDelete));
+router.get('/categories/', catchErrors(categoriesGet));
+router.get('/categories/:id', catchErrors(categoriesGetId));
+router.post('/categories/', catchErrors(categoriesPost));
+router.patch('/categories/:id', catchErrors(categoriesPatch));
+router.delete('/categories/:id', catchErrors(categoriesDelete));
+
 
 module.exports = router;
