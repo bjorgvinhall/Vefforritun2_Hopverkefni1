@@ -22,18 +22,55 @@ const {
   updateCategory,
   deleteCategory,
 } = require('./products');
+const {
+  usersList,
+  userList,
+  usersPatch,
+  usersPostRegister,
+  usersPostLogin,
+  usersGetMe,
+  usersPatchMe,
+
+} = require('./users');
+
+const {
+  productsList,
+  productPost,
+  productList,
+  productPatch,
+  productDelete,
+} = require('./products');
+
+/* const {
+  categoriesList,
+  categoriesPost,
+  categoryList,
+  categoriesPatch,
+  categoriesDelete,
+} = require('./categories'); */
+
+const {
+  cartsList,
+  cartAdd,
+  cartList,
+  cartPatch,
+  cartDelete,
+} = require('./cart');
+
+const {
+  ordersList,
+  ordersPost,
+  orderList,
+} = require('./orders');
+
+const {
+  catchErrors,
+  ensureLoggedIn,
+  ensureAdmin,
+  sanitizeXss,
+} = require('./utils');
 
 const router = express.Router();
-
-/**
- * Higher-order fall sem umlykur async middleware með villumeðhöndlun.
- *
- * @param {function} fn Middleware sem grípa á villur fyrir
- * @returns {function} Middleware með villumeðhöndlun
- */
-function catchErrors(fn) {
-  return (req, res, next) => fn(req, res, next).catch(next);
-}
 
 async function productsGet(req, res) {
   const { order, category } = req.query;
@@ -273,13 +310,36 @@ async function deleteRoute(req, res) {
   return res.status(404).json({ error: 'Item not found' });
 }
 
-router.get('/users/', catchErrors(usersGet));
-router.get('/users/:id', catchErrors(usersGetId));
-router.patch('/users/:id', catchErrors(usersPatchId));
+router.get('/users/', ensureAdmin, catchErrors(usersList));
+router.get('/users/:id', ensureAdmin, catchErrors(userList));
+router.patch('/users/:id', ensureAdmin, catchErrors(usersPatch));
 router.post('/users/register', catchErrors(usersPostRegister));
 router.post('/users/login', catchErrors(usersPostLogin));
-router.get('/users/me', catchErrors(usersGetMe));
-router.patch('/users/me', catchErrors(usersPatchMe));
+router.get('/users/me', ensureLoggedIn, catchErrors(usersGetMe));
+router.patch('/users/me', ensureLoggedIn, catchErrors(usersPatchMe));
+
+router.get('/products', catchErrors(productsList));
+router.post('/products', ensureAdmin, catchErrors(productPost));
+router.get('/products/:id', catchErrors(productList));
+router.patch('/products/:id', ensureAdmin, catchErrors(productPatch));
+router.delete('/products/:id', ensureAdmin, catchErrors(productDelete));
+
+/* router.get('/categories', catchErrors(categoriesList));
+router.post('/categories', ensureAdmin, catchErrors(categoriesPost));
+router.get('/categories/:id', catchErrors(categoryList));
+router.patch('/categories/:id', ensureAdmin, catchErrors(categoriesPatch));
+router.delete('/categories/:id', ensureAdmin, catchErrors(categoriesDelete)); */
+
+router.get('/cart', ensureLoggedIn, catchErrors(cartsList));
+router.post('/cart', ensureLoggedIn, catchErrors(cartAdd));
+router.get('/cart/:id', ensureLoggedIn, catchErrors(cartList));
+router.patch('/cart/:id', ensureLoggedIn, catchErrors(cartPatch));
+router.delete('/cart/:id', ensureLoggedIn, catchErrors(cartDelete));
+
+router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
+router.post('/orders', ensureLoggedIn, catchErrors(ordersPost));
+router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList));
+
 
 router.get('/products/', catchErrors(productsGet));
 router.get('/products/:id', catchErrors(productsGetId));
