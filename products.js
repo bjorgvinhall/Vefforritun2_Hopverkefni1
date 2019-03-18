@@ -68,7 +68,7 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
   return errors;
 }
 
-async function listCategories(order = 'asc', category = undefined) {
+async function getProducts(order = 'asc', category = undefined) {
   let result;
 
   const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
@@ -449,7 +449,7 @@ async function deleteCategory(id, category) {
 }
 
 module.exports = {
-  listCategories,
+  getProducts,
   getProductId,
   createProduct,
   updateProduct,
