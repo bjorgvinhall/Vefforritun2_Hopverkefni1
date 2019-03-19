@@ -50,11 +50,11 @@ const {
   cartDelete,
 } = require('./cart');
 
-const {
-  ordersList,
-  ordersPost,
-  orderList,
-} = require('./orders');
+// const {
+//   ordersList,
+//   ordersPost,
+//   orderList,
+// } = require('./orders');
 
 const {
   catchErrors,
@@ -225,14 +225,14 @@ router.post('/categories/', ensureAdmin, catchErrors(categoriesPost));
 router.patch('/categories/:id', ensureAdmin, catchErrors(categoriesPatch));
 router.delete('/categories/:id', ensureAdmin, catchErrors(categoriesDelete));
 
-router.get('/cart', ensureLoggedIn, catchErrors(cartsList));
-router.post('/cart', ensureLoggedIn, catchErrors(cartAdd));
+router.get('/cart', catchErrors(cartsList)); // ensureLoggedIn,
+router.post('/cart', catchErrors(cartAdd)); // ensureLoggedIn, 
 router.get('/cart/:id', ensureLoggedIn, catchErrors(cartList));
 router.patch('/cart/:id', ensureLoggedIn, catchErrors(cartPatch));
 router.delete('/cart/:id', ensureLoggedIn, catchErrors(cartDelete));
 
-router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
-router.post('/orders', ensureLoggedIn, catchErrors(ordersPost));
-router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList));
+// router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
+// router.post('/orders', ensureLoggedIn, catchErrors(ordersPost));
+// router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList));
 
 module.exports = router;
