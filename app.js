@@ -47,8 +47,42 @@ app.use(passport.initialize());
 
 app.get('/', (req, res) => {
   res.json({
-    login: '/login',
-    admin: '/admin',
+    users: {
+      users: '/users',
+      user: '/users/{id}',
+      update: '/users/{id}',
+      register: '/users/register',
+      login: '/users/login',
+      me: '/users/me',
+      'Update me': '/users/me',
+    },
+    products: {
+      products: '/products',
+      create: '/products',
+      'products by date': '/products?category={category}',
+      'products by search': '/products?category={category}',
+      product: '/products/{id}',
+      update: '/products/{id}',
+      delete: '/products/{id}',
+    },
+    categories: {
+      categories: '/categories',
+      create: '/categories',
+      update: '/categories({id}',
+      delete: '/categories/{id}',
+    },
+    cart: {
+      cart: '/cart',
+      update: '/cart',
+      info: '/cart/line/{id}',
+      update: '/cart/line/{id}',
+      delete: '/cart/line/{id}',
+    },
+    orders: {
+      orders: '/orders',
+      create: '/orders',
+      info: '/orders/{id}',
+    },
   });
 });
 
