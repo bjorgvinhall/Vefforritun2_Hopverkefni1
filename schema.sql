@@ -31,8 +31,8 @@ CREATE TABLE cart (
 );
 
 CREATE TABLE cartItems (
+  id        SERIAL primary key,
   username  TEXT references cart,
   title     TEXT references products,
-  quantity  INT not null,
-  primary key (username, title)
+  quantity  INT not null
 );
