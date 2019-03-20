@@ -94,9 +94,7 @@ async function getProducts(order = 'asc', category = undefined) {
 }
 
 // Sækir vöru eftir product id
-async function getProductId(req, res) {
-  const { id } = req.params;
-
+async function getProductId(id) {
   const q = 'SELECT * FROM products WHERE product_no = $1';
 
   let result = null;
@@ -108,14 +106,10 @@ async function getProductId(req, res) {
   }
 
   if (!result || result.rows.length === 0) {
-    return res.status(404).json({ error: 'Item not found' });
+    return null;
   }
 
-  if (result.rows[0]) {
-    return res.json(result.rows[0]);
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
+  return result.rows[0];
 }
 
 async function createProduct({ title, price, text, imgurl, category } = {}) {

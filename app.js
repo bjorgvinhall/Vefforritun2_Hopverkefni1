@@ -4,15 +4,46 @@ const express = require('express');
 const passport = require('passport');
 const { Strategy, ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
-const api = require('./api');
 const { findById, findByUsername, comparePasswords } = require('./users');
+const { catchErrors } = require('./utils');
 
+const { // EKKI tilbúið, gera þessar aðferðir inní users.js
+  users,
+  userList,
+  usersPatch,
+  usersPatchMe,
+  usersGetMe,
+} = require('./users');
+
+const { // tilbúið, allar products og categories aðferðir
+  productsGet,
+  productsGetId,
+  productsPost,
+  productsPatch,
+  productsDelete,
+  categoriesGet,
+  categoriesGetId,
+  categoriesPost,
+  categoriesPatch,
+  categoriesDelete,
+} = require('./products');
+
+const { // EKKI tilbúið, útfæra þessar aðferðir inní cart.js
+  cartsList,
+  cartAdd,
+  cartList,
+  cartPatch,
+  cartDelete,
+  ordersList,
+  ordersPost,
+  orderList,
+} = require('./cart');
 
 const {
   PORT: port = 3000,
   HOST: host = '127.0.0.1',
   JWT_SECRET: jwtSecret,
-  TOKEN_LIFETIME: tokenLifetime = 20,
+  TOKEN_LIFETIME: tokenLifetime = 24 * 60 * 1000, // 1 dagur
 } = process.env;
 
 
@@ -23,7 +54,6 @@ if (!jwtSecret) {
 
 const app = express();
 app.use(express.json());
-app.use(api);
 
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -41,38 +71,9 @@ async function strat(data, next) {
 }
 
 passport.use(new Strategy(jwtOptions, strat));
-app.use(passport.initialize());
 
 app.use(passport.initialize());
-
-app.get('/', (req, res) => {
-  res.json({
-    login: '/login',
-    admin: '/admin',
-  });
-});
-
-app.post('/login', async (req, res) => {
-  const { username, password = '' } = req.body;
-
-  const user = await findByUsername(username);
-
-  if (!user) {
-    return res.status(401).json({ error: 'No such user' });
-  }
-
-  const passwordIsCorrect =
-    await comparePasswords(password, user.password);
-
-  if (passwordIsCorrect) {
-    const payload = { id: user.id };
-    const tokenOptions = { expiresIn: tokenLifetime };
-    const token = jwt.sign(payload, jwtOptions.secretOrKey, tokenOptions);
-    return res.json({ token });
-  }
-
-  return res.status(401).json({ error: 'Invalid password' });
-});
+app.use(passport.session());
 
 function requireAuthentication(req, res, next) {
   return passport.authenticate(
@@ -96,9 +97,102 @@ function requireAuthentication(req, res, next) {
   )(req, res, next);
 }
 
+
+app.get('/', (req, res) => {
+  res.json({
+    users: {
+      users: '/users',
+      user: '/users/{id}',
+      update: '/users/{id}',
+      register: '/users/register',
+      login: '/users/login',
+      me: '/users/me',
+      'Update me': '/users/me',
+    },
+    products: {
+      products: '/products',
+      create: '/products',
+      'products by date': '/products?category={category}',
+      'products by search': '/products?category={category}',
+      product: '/products/{id}',
+      update: '/products/{id}',
+      delete: '/products/{id}',
+    },
+    categories: {
+      categories: '/categories',
+      create: '/categories',
+      update: '/categories({id}',
+      delete: '/categories/{id}',
+    },
+    cart: {
+      cart: '/cart',
+      update: '/cart',
+      info: '/cart/line/{id}',
+      update: '/cart/line/{id}',
+      delete: '/cart/line/{id}',
+    },
+    orders: {
+      orders: '/orders',
+      create: '/orders',
+      info: '/orders/{id}',
+    },
+  });
+});
+
+app.post('/users/login', async (req, res) => {
+  const { username, password = '' } = req.body;
+
+  const user = await findByUsername(username);
+
+  if (!user) {
+    return res.status(401).json({ error: 'No such user' });
+  }
+
+  const passwordIsCorrect =
+    await comparePasswords(password, user.password);
+
+  if (passwordIsCorrect) {
+    const payload = { id: user.id };
+    const tokenOptions = { expiresIn: tokenLifetime };
+    const token = jwt.sign(payload, jwtOptions.secretOrKey, tokenOptions);
+    return res.json({ token });
+  }
+
+  return res.status(401).json({ error: 'Invalid password' });
+});
+
 app.get('/admin', requireAuthentication, (req, res) => {
   res.json({ data: 'top secret' });
 });
+
+
+app.get('/users/', requireAuthentication, catchErrors(users));
+app.get('/users/:id', requireAuthentication, catchErrors(userList));
+app.patch('/users/:id', requireAuthentication, catchErrors(usersPatch));
+app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
+app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
+
+app.get('/products/', catchErrors(productsGet));
+app.get('/products/:id', catchErrors(productsGetId));
+app.post('/products/', requireAuthentication, catchErrors(productsPost));
+app.patch('/products/:id', requireAuthentication, catchErrors(productsPatch));
+app.delete('/products/:id', requireAuthentication, catchErrors(productsDelete));
+
+app.get('/categories/', catchErrors(categoriesGet));
+app.get('/categories/:id', catchErrors(categoriesGetId));
+app.post('/categories/', requireAuthentication, catchErrors(categoriesPost));
+app.patch('/categories/:id', requireAuthentication, catchErrors(categoriesPatch));
+app.delete('/categories/:id', requireAuthentication, catchErrors(categoriesDelete));
+
+app.get('/cart', requireAuthentication, catchErrors(cartsList));
+app.post('/cart', requireAuthentication, catchErrors(cartAdd));
+app.get('/cart/line/:id', requireAuthentication, catchErrors(cartList));
+app.patch('/cart/line/:id', requireAuthentication, catchErrors(cartPatch));
+app.delete('/cart/line/:id', requireAuthentication, catchErrors(cartDelete));
+
+app.get('/orders', requireAuthentication, catchErrors(ordersList));
+app.post('/orders', requireAuthentication, catchErrors(ordersPost));
+app.get('/orders/:id', requireAuthentication, catchErrors(orderList));
 
 function notFoundHandler(req, res, next) { // eslint-disable-line
   console.warn('Not found', req.originalUrl);
