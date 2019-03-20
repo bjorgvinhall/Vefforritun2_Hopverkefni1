@@ -13,6 +13,15 @@ async function cartsList(req, res) {
   return res.json(result.rows);
 }
 
+async function cartList(req, res) {
+  const { id } = req.query;
+  const username = 'admin'; // req.user.name;
+
+  const result = await query('SELECT * FROM cartItems WHERE username = $1', [username]);
+
+  return res.json(result.rows);
+}
+
 async function cartAdd(req, res) {
   const errors = [];
   const { isOrder = false, title, quantity } = req.body;
@@ -53,7 +62,7 @@ async function cartAdd(req, res) {
 module.exports = {
   cartsList,
   cartAdd,
-  // cartList,
+  cartList,
   // cartPatch,
   // cartDelete,
 };

@@ -80,12 +80,12 @@ async function deserializeUser(id, done) {
   }
 }
 
-async function users() {
+async function users(req, res) {
   const q = 'SELECT * FROM users;';
 
   const result = await query(q);
 
-  return result.rows;
+  return res.json(result.rows);
 }
 
 async function setAdmin(id, admin) {
