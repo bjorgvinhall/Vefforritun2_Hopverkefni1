@@ -433,23 +433,171 @@ async function updateCategory(id, { category }) {
   };
 }
 
-async function deleteCategory(id) {
-  const q = 'DELETE FROM categories WHERE id = $1';
+async function deleteCategory(id, category) {
+ /*  const q1 = 'SELECT FROM products WHERE category = $1';
+  const findItems = await query(q1);
 
-  const result = await query(q, [id]);
+  const q2 = 'DELETE FROM products WHERE category = $1';
+
+  const deleteItems = await query(q2, [category]); */
+
+  const q3 = 'DELETE FROM categories WHERE id = $1';
+
+  const result = await query(q3, [id]);
 
   return result.rowCount === 1;
 }
 
+// aðferðir sem kallað er í úr app.js
+async function productsGet(req, res) {
+  const { order, category } = req.query;
+
+  const result = await getProducts(order, category);
+
+  return res.json(result);
+}
+
+async function productsGetId(req, res) {
+  const { id } = req.params;
+
+  const result = await getProductId(id);
+
+  if (result) {
+    return res.json(result);
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function productsPost(req, res) {
+  const { title, price, text, imgurl, category } = req.body;
+
+  const result = await createProduct({ title, price, text, imgurl, category });
+
+  if (!result.success && result.existingProduct) {
+    return res.status(400).json({ error: 'Product already exists' });
+  }
+
+  if (!result.success && !result.existingCategory && result.validation.length === 0) {
+    return res.status(400).json({ error: 'Category does not exist' });
+  }
+
+  if (!result.success) {
+    return res.status(400).json(result.validation);
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function productsPatch(req, res) {
+  const { id } = req.params;
+  const { title, price, text, imgurl, category } = req.body;
+
+  const item = { title, price, text, imgurl, category };
+
+  const result = await updateProduct(id, item);
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function productsDelete(req, res) {
+  const { id } = req.params;
+
+  const deleted = await deleteProduct(id);
+
+  if (deleted) {
+    return res.status(204).json({});
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function categoriesGet(req, res) {
+  const result = await getCategories();
+
+  return res.json(result);
+}
+
+async function categoriesGetId(req, res) {
+  const { id } = req.params;
+
+  const result = await getCategoriesId(id);
+
+  if (result) {
+    return res.json(result);
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
+async function categoriesPost(req, res) {
+  const { category } = req.body;
+
+  const result = await createCategory({ category });
+
+  if (result.existing) {
+    return res.status(400).json({ error: 'Category already exists' });
+  }
+
+  if (!result.success) {
+    return res.status(400).json(result.validation);
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function categoriesPatch(req, res) {
+  const { id } = req.params;
+  const { category } = req.body;
+
+  const item = { category };
+
+  const result = await updateCategory(id, item);
+
+  if (!result.success && result.existing) {
+    return res.status(400).json({ error: 'Category already exists' });
+  }
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  return res.status(201).json(result.item);
+}
+
+async function categoriesDelete(req, res) {
+  const { id } = req.params;
+
+  const deleted = await deleteCategory(id);
+
+  if (deleted) {
+    return res.status(204).json({});
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
+}
+
 module.exports = {
-  getProducts,
-  getProductId,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  getCategories,
-  getCategoriesId,
-  createCategory,
-  updateCategory,
-  deleteCategory,
+  productsGet,
+  productsGetId,
+  productsPost,
+  productsPatch,
+  productsDelete,
+  categoriesGet,
+  categoriesGetId,
+  categoriesPost,
+  categoriesPatch,
+  categoriesDelete,
 };
