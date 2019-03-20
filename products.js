@@ -94,7 +94,9 @@ async function getProducts(order = 'asc', category = undefined) {
 }
 
 // Sækir vöru eftir product id
-async function getProductId(id) {
+async function getProductId(req, res) {
+  const { id } = req.params;
+
   const q = 'SELECT * FROM products WHERE product_no = $1';
 
   let result = null;
@@ -106,10 +108,14 @@ async function getProductId(id) {
   }
 
   if (!result || result.rows.length === 0) {
-    return null;
+    return res.status(404).json({ error: 'Item not found' });
   }
 
-  return result.rows[0];
+  if (result.rows[0]) {
+    return res.json(result.rows[0]);
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
 }
 
 async function createProduct({ title, price, text, imgurl, category } = {}) {
@@ -433,17 +439,10 @@ async function updateCategory(id, { category }) {
   };
 }
 
-async function deleteCategory(id, category) {
- /*  const q1 = 'SELECT FROM products WHERE category = $1';
-  const findItems = await query(q1);
+async function deleteCategory(id) {
+  const q = 'DELETE FROM categories WHERE id = $1';
 
-  const q2 = 'DELETE FROM products WHERE category = $1';
-
-  const deleteItems = await query(q2, [category]); */
-
-  const q3 = 'DELETE FROM categories WHERE id = $1';
-
-  const result = await query(q3, [id]);
+  const result = await query(q, [id]);
 
   return result.rowCount === 1;
 }

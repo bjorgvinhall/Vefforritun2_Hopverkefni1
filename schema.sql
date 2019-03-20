@@ -10,7 +10,7 @@ CREATE TABLE products (
   text      TEXT not null,
   imgurl    TEXT,
   date      TIMESTAMP WITH TIME ZONE not null default current_timestamp,
-  category  TEXT references categories
+  category  TEXT references categories(category)
 );
 
 CREATE TABLE users (

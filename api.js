@@ -231,8 +231,8 @@ router.get('/cart/:id', ensureLoggedIn, catchErrors(cartList));
 router.patch('/cart/:id', ensureLoggedIn, catchErrors(cartPatch));
 router.delete('/cart/:id', ensureLoggedIn, catchErrors(cartDelete));
 
-router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
+/* router.get('/orders', ensureLoggedIn, catchErrors(ordersList));
 router.post('/orders', ensureLoggedIn, catchErrors(ordersPost));
-router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList));
+router.get('/orders/:id', ensureLoggedIn, catchErrors(orderList)); */
 
 module.exports = router;
