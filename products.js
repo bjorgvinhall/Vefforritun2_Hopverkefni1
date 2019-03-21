@@ -434,7 +434,7 @@ async function updateCategory(id, { category }) {
 }
 
 async function deleteCategory(id, category) {
-  const q1 = 'SELECT * FROM products WHERE category = $1';
+  /* const q1 = 'SELECT * FROM products WHERE category = $1';
   const findItems = await query(q1, category);
 
   if (findItems.rows.length > 0) {
@@ -449,11 +449,26 @@ async function deleteCategory(id, category) {
       notFound: false,
       errors,
     };
-  }
+  } */
+  let result;
+  let errors = [];
 
   const q2 = 'DELETE FROM categories WHERE id = $1';
 
-  const result = await query(q2, [id]);
+  try {
+    result = await query(q2, [id]);
+  } catch (e) {
+    errors.push({
+      field: 'error',
+      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er eytt',
+    });
+
+    return {
+      success: false,
+      notFound: false,
+      errors,
+    };
+  }
 
   if (result.rowCount === 1) {
     return {
