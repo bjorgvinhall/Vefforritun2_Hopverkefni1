@@ -1,5 +1,30 @@
+const xss = require('xss');
 const bcrypt = require('bcrypt');
 const { query } = require('./db');
+
+async function findByUsername(username) {
+  const q = 'SELECT * FROM users WHERE username = $1';
+
+  const result = await query(q, [username]);
+
+  if (result.rowCount === 1) {
+    return result.rows[0];
+  }
+
+  return null;
+}
+
+async function findById(id) {
+  const q = 'SELECT * FROM users WHERE id = $1';
+
+  const result = await query(q, [id]);
+
+  if (result.rowCount === 1) {
+    return result.rows[0];
+  }
+
+  return null;
+}
 
 /**
  * Athugar hvort username og password sé til í notandakerfi.
@@ -30,6 +55,57 @@ async function userStrategy(username, password, done) {
   }
 
   return done(null, false);
+}
+
+/**
+ * Athugar hvort strengur sé "tómur", þ.e.a.s. `null`, `undefined`.
+ *
+ * @param {string} s Strengur til að athuga
+ * @returns {boolean} `true` ef `s` er "tómt", annars `false`
+ */
+function isEmpty(s) {
+  return s == null && !s;
+}
+
+/**
+ * Staðfestir að todo item sé gilt. Ef verið er að breyta item sem nú þegar er
+ * til, þá er `patching` sent inn sem `true`.
+ *
+ * @param {TodoItem} todo Todo item til að staðfesta
+ * @param {boolean} [patching=false]
+ * @returns {array} Fylki af villum sem komu upp, tómt ef engin villa
+ */
+function validate({ username, password, email } = {}, patching = false) {
+  const errors = [];
+
+  if (!patching || !isEmpty(username)) {
+    if (typeof username !== 'string' || username.length < 1) {
+      errors.push({
+        field: 'username',
+        message: 'Notandanafn krafist',
+      });
+    }
+  }
+
+  if (!isEmpty(password)) {
+    if (password.length < 8) {
+      errors.push({
+        field: 'password',
+        message: 'Password verður að vera amk. 8 stafir',
+      });
+    }
+  }
+
+  if (!isEmpty(email)) {
+    if (typeof email !== 'string' || email.length < 1) {
+      errors.push({
+        field: 'email',
+        message: 'Netfang verður að vera á formi netfangs',
+      });
+    }
+  }
+
+  return errors;
 }
 
 /**
@@ -71,7 +147,77 @@ async function usersList(id) {
   return result.rows[0];
 }
 
-async function createUser(username, password, name, email) {
+/**
+ * Uppfærir notanda
+ * @param {number} id Auðkenni notanda
+ * @param {user} user Notanda hlutur með gildum sem á að uppfæra
+ * @param {boolean} admin Gildi sem segir til um hvort notandi sé stjórnandi
+ * @returns {Result} Niðurstaða þess að búa til notandann
+ */
+async function usersPatch(id, { username, password, email }, admin) {
+  const validation = validate({ username, password, email }, true);
+  console.log('Admin: ' + admin + ', ÞARF AÐ LAGA !');
+
+  if (validation.length > 0) {
+    return {
+      success: false,
+      validation,
+    };
+  }
+
+  const filteredValues = [
+    xss(username),
+    xss(password),
+    xss(email),
+  ];
+
+  const updates = [
+    username ? 'username' : null,
+    password ? 'password' : null,
+    email ? 'email' : null,
+  ];
+
+  const q = `
+    UPDATE users
+    SET ${updates} WHERE id = $1
+    RETURNING id, username, password, email, admin`;
+  const values = [id, ...filteredValues, admin];
+  // fer hingað
+  console.log('gildi: ' + values);
+  const result = await query(q, values);
+  // ekki hingað
+
+  if (result.rowCount === 0) {
+    return {
+      success: false,
+      validation: [],
+      notFound: true,
+      item: null,
+    };
+  }
+
+  return {
+    success: true,
+    validation: [],
+    notFound: false,
+    item: result.rows[0],
+  };
+}
+
+function serializeUser(user, done) {
+  done(null, user.id);
+}
+
+async function deserializeUser(id, done) {
+  try {
+    const user = await findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+}
+
+async function createUser(username, password, email) {
   const hashedPassword = await bcrypt.hash(password, 11);
 
   const q = `
@@ -102,6 +248,7 @@ async function comparePasswords(hash, password) {
 module.exports = {
   userStrategy,
   usersList,
+  usersPatch,
   createUser,
   users,
   setAdmin,

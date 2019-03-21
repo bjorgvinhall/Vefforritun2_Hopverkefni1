@@ -114,6 +114,30 @@ async function userRoute(req, res) {
   return res.status(404).json({ error: 'Notandi finnst ekki' });
 }
 
+/**
+ * Route handler til að breyta notanda gegnum PATCH
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breyttur notandi, annars villa
+ */
+async function userPatchRoute(req, res) {
+  const { id, admin } = req.params;
+  const { username, password, email } = req.body;
+
+  const user = { username, password, email };
+
+  const result = await usersPatch(id, user, admin);
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.user);
+}
+
 app.get('/', (req, res) => {
   res.json({
     users: {
@@ -184,7 +208,7 @@ app.get('/admin', requireAuthentication, (req, res) => {
 
 app.get('/users/', catchErrors(users));
 app.get('/users/:id', catchErrors(userRoute));
-app.patch('/users/:id', catchErrors(usersPatch));
+app.patch('/users/:id', catchErrors(userPatchRoute));
 app.post('/users/register', catchErrors(usersCreate));
 app.post('/users/login', catchErrors(usersLogin));
 app.get('/users/me/', catchErrors(usersGetMe));
