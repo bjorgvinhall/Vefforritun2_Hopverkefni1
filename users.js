@@ -1,41 +1,6 @@
 const bcrypt = require('bcrypt');
 const { query } = require('./db');
 
-async function findByUsername(username) {
-  const q = 'SELECT * FROM users WHERE username = $1';
-
-  const result = await query(q, [username]);
-
-  if (result.rowCount === 1) {
-    return result.rows[0];
-  }
-
-  return null;
-}
-
-async function findById(id) {
-  const q = 'SELECT * FROM users WHERE id = $1';
-
-  const result = await query(q, [id]);
-
-  if (result.rowCount === 1) {
-    return result.rows[0];
-  }
-
-  return null;
-}
-
-async function createUser(username, password, name, email) {
-  const hashedPassword = await bcrypt.hash(password, 11);
-
-  const q = `
-  INSERT INTO
-  users (username, password, email)
-  VALUES ($1, $2, $3, $4)`;
-
-  return query(q, [username, hashedPassword, email]);
-}
-
 /**
  * Athugar hvort username og password sé til í notandakerfi.
  * Callback tekur við villu sem fyrsta argument, annað argument er
@@ -67,25 +32,54 @@ async function userStrategy(username, password, done) {
   return done(null, false);
 }
 
-function serializeUser(user, done) {
-  done(null, user.id);
-}
-
-async function deserializeUser(id, done) {
-  try {
-    const user = await findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
-}
-
+/**
+ * Skilar lista af notendum gegnum GET
+ * @param {*} req  Request hlutur
+ * @param {*} res Response hlutur
+ * @returns {array} Fylki af notendum
+ */
 async function users(req, res) {
-  const q = 'SELECT * FROM users;';
+  const q = `
+  SELECT * FROM users`;
 
   const result = await query(q);
 
   return res.json(result.rows);
+}
+
+/**
+ * Sækir stakan notanda eftir auðkenni
+ * @param {number} id Auðkenni notanda
+ * @returns {object} User ef hann er til, annars null
+ */
+async function usersList(id) {
+  const q = `
+  SELECT * FROM users
+  WHERE id = $1`;
+
+  let result = null;
+
+  try {
+    result = await query(q, [id]);
+  } catch (e) {
+    console.warn('Error fetching user', e);
+  }
+
+  if (!result || result.rows.length === 0) {
+    return null;
+  }
+  return result.rows[0];
+}
+
+async function createUser(username, password, name, email) {
+  const hashedPassword = await bcrypt.hash(password, 11);
+
+  const q = `
+  INSERT INTO
+  users (username, password, email)
+  VALUES ($1, $2, $3, $4)`;
+
+  return query(q, [username, hashedPassword, email]);
 }
 
 async function setAdmin(id, admin) {
@@ -106,12 +100,9 @@ async function comparePasswords(hash, password) {
 }
 
 module.exports = {
-  findByUsername,
-  findById,
-  createUser,
   userStrategy,
-  serializeUser,
-  deserializeUser,
+  usersList,
+  createUser,
   users,
   setAdmin,
   comparePasswords,
