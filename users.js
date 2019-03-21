@@ -246,6 +246,8 @@ async function comparePasswords(hash, password) {
 }
 
 module.exports = {
+  findByUsername, // til að login virki
+  findById,
   userStrategy,
   usersList,
   usersPatch,

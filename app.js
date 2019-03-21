@@ -205,24 +205,24 @@ app.get('/admin', requireAuthentication, (req, res) => {
   res.json({ data: 'top secret' });
 });
 
-
+// hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
 app.get('/users/', catchErrors(users));
-app.get('/users/:id', catchErrors(userRoute));
-app.patch('/users/:id', catchErrors(userPatchRoute));
 app.post('/users/register', catchErrors(usersCreate));
 app.post('/users/login', catchErrors(usersLogin));
 app.get('/users/me/', catchErrors(usersGetMe));
 app.patch('/users/me/', catchErrors(usersPatchMe));
+app.get('/users/:id', catchErrors(userRoute));
+app.patch('/users/:id', catchErrors(userPatchRoute));
 
 app.get('/products/', catchErrors(productsGet));
-app.get('/products/:id', catchErrors(productsGetId));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));
+app.get('/products/:id', catchErrors(productsGetId));
 app.patch('/products/:id', requireAuthentication, catchErrors(productsPatch));
 app.delete('/products/:id', requireAuthentication, catchErrors(productsDelete));
 
 app.get('/categories/', catchErrors(categoriesGet));
-app.get('/categories/:id', catchErrors(categoriesGetId));
 app.post('/categories/', requireAuthentication, catchErrors(categoriesPost));
+app.get('/categories/:id', catchErrors(categoriesGetId));
 app.patch('/categories/:id', requireAuthentication, catchErrors(categoriesPatch));
 app.delete('/categories/:id', requireAuthentication, catchErrors(categoriesDelete));
 
