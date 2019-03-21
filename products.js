@@ -434,18 +434,38 @@ async function updateCategory(id, { category }) {
 }
 
 async function deleteCategory(id, category) {
- /*  const q1 = 'SELECT FROM products WHERE category = $1';
-  const findItems = await query(q1);
+  const q1 = 'SELECT * FROM products WHERE category = $1';
+  const findItems = await query(q1, category);
 
-  const q2 = 'DELETE FROM products WHERE category = $1';
+  if (findItems.rows.length > 0) {
+    const errors = [];
+    errors.push({
+      field: 'error',
+      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er eytt',
+    });
 
-  const deleteItems = await query(q2, [category]); */
+    return {
+      success: false,
+      notFound: false,
+      errors,
+    };
+  }
 
-  const q3 = 'DELETE FROM categories WHERE id = $1';
+  const q2 = 'DELETE FROM categories WHERE id = $1';
 
-  const result = await query(q3, [id]);
+  const result = await query(q2, [id]);
 
-  return result.rowCount === 1;
+  if (result.rowCount === 1) {
+    return {
+      success: true,
+      notFound: false,
+    };
+  }
+
+  return {
+    success: false,
+    notFound: true,
+  };
 }
 
 // aðferðir sem kallað er í úr app.js
@@ -580,10 +600,14 @@ async function categoriesPatch(req, res) {
 async function categoriesDelete(req, res) {
   const { id } = req.params;
 
-  const deleted = await deleteCategory(id);
+  const result = await deleteCategory(id);
 
-  if (deleted) {
+  if (result.success) {
     return res.status(204).json({});
+  }
+
+  if (!result.notFound) {
+    return res.status(400).json(result.errors);
   }
 
   return res.status(404).json({ error: 'Item not found' });
