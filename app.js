@@ -9,8 +9,10 @@ const { catchErrors } = require('./utils');
 
 const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   users,
-  userList,
+  usersList,
   usersPatch,
+  usersCreate,
+  usersLogin,
   usersPatchMe,
   usersGetMe,
 } = require('./users');
@@ -97,6 +99,20 @@ function requireAuthentication(req, res, next) {
   )(req, res, next);
 }
 
+/**
+ * Route handler til að sækja stakan notanda gegnum GET
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Notandi eða villa
+ */
+async function userRoute(req, res) {
+  const { id } = req.params;
+  const user = await usersList(id);
+  if (user) {
+    return res.json(user);
+  }
+  return res.status(404).json({ error: 'Notandi finnst ekki' });
+}
 
 app.get('/', (req, res) => {
   res.json({
@@ -166,11 +182,13 @@ app.get('/admin', requireAuthentication, (req, res) => {
 });
 
 
-app.get('/users/', requireAuthentication, catchErrors(users));
-app.get('/users/:id', requireAuthentication, catchErrors(userList));
-app.patch('/users/:id', requireAuthentication, catchErrors(usersPatch));
-app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
-app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
+app.get('/users/', catchErrors(users));
+app.get('/users/:id', catchErrors(userRoute));
+app.patch('/users/:id', catchErrors(usersPatch));
+app.post('/users/register', catchErrors(usersCreate));
+app.post('/users/login', catchErrors(usersLogin));
+app.get('/users/me/', catchErrors(usersGetMe));
+app.patch('/users/me/', catchErrors(usersPatchMe));
 
 app.get('/products/', catchErrors(productsGet));
 app.get('/products/:id', catchErrors(productsGetId));
