@@ -11,8 +11,6 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   users,
   usersList,
   usersPatch,
-  usersCreate,
-  usersLogin,
   usersPatchMe,
   usersGetMe,
 } = require('./users');
@@ -205,14 +203,16 @@ app.get('/admin', requireAuthentication, (req, res) => {
   res.json({ data: 'top secret' });
 });
 
+
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
-app.get('/users/', catchErrors(users));
-app.post('/users/register', catchErrors(usersCreate));
-app.post('/users/login', catchErrors(usersLogin));
-app.get('/users/me/', catchErrors(usersGetMe));
-app.patch('/users/me/', catchErrors(usersPatchMe));
-app.get('/users/:id', catchErrors(userRoute));
-app.patch('/users/:id', catchErrors(userPatchRoute));
+app.get('/users/', requireAuthentication, catchErrors(users));
+app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
+app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
+app.get('/users/:id', requireAuthentication, catchErrors(userRoute));
+app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
+// register og login eru aðeins ofar í þessari skrá, meira vesen að hafa þær í users.js
+// app.post('/users/register', catchErrors(usersCreate));
+// app.post('/users/login', catchErrors(usersLogin));
 
 app.get('/products/', catchErrors(productsGet));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));
