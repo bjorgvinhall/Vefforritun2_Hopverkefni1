@@ -133,7 +133,7 @@ async function userPatchRoute(req, res) {
   if (!result.success && result.notFound) {
     return res.status(404).json({ error: 'Notandi fannst ekki' });
   }
-  return res.status(201).json(result.user);
+  return res.status(201).json(result.item);
 }
 
 app.get('/', (req, res) => {
