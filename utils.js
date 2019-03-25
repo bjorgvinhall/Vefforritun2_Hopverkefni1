@@ -19,7 +19,7 @@ function catchErrors(fn) {
 * @param {funcion} next Næsta middleware
 */
 function ensureLoggedIn(req, res, next) {
-  console.log("ensureLoggedIn", req.user);
+  console.log('ensureLoggedIn', req.user);
   if (req.isAuthenticated()) {
     return next();
   }
