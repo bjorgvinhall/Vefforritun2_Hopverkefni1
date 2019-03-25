@@ -178,16 +178,6 @@ async function usersList(id) {
  * patch /users/:id
  */
 async function usersPatch(id, { username, password, email }) {
-
-  /* Ónotaður kóði, hunsa í smá
-  const p = `
-  SELECT * FROM users
-  WHERE id = $1`;
-  const prev = await query(p, [id]);
-  const originalValues = prev.rows[0];
-  console.log('Er notandinn admin? ' + originalValues.admin);
-  */
-
   const validation = validate({ username, password, email }, true);
 
   if (validation.length > 0) {
@@ -217,8 +207,6 @@ async function usersPatch(id, { username, password, email }) {
     RETURNING id, username, password, email, admin`;
   const values = [id, ...filteredValues];
   
-  console.log('gildi: ' + values);
-
   const result = await query(q, values);
 
   if (result.rowCount === 0) {
@@ -249,6 +237,83 @@ async function deserializeUser(id, done) {
   } catch (err) {
     done(err);
   }
+}
+
+/**
+ * Sækir upplýsingar um notanda sem er innskráður
+ * @param {number} id Auðkenni notanda
+ * @returns {object} User
+ * get /users/me
+ */
+async function usersGetMe(id) {
+  const q = `
+  SELECT * FROM users
+  WHERE id = $1`;
+  let result = null;
+
+  try {
+    result = await query(q, [id]);
+
+  } catch (e) {
+    console.warn('Error fetching user', e);
+  }
+
+  if (!result || result.rows.length === 0) {
+    return null;
+  }
+
+  return result.rows[0];
+}
+
+async function usersPatchMe(id, { username, password, email }) {
+  const validation = validate({ username, password, email }, true);
+
+  if (validation.length > 0) {
+    return {
+      success: false,
+      validation,
+    };
+  }
+
+  const filteredValues = [
+    xss(username),
+    xss(password),
+    xss(email),
+  ];
+
+  const updates = [
+    username ? 'username' : null,
+    password ? 'password' : null,
+    email ? 'email' : null,
+  ]
+    .filter(Boolean)
+    .map((field, i) => `${field} = $${i + 2}`);
+
+  const q = `
+    UPDATE users
+    SET ${updates} WHERE id = $1
+    RETURNING id, username, password, email, admin`;
+  const values = [id, ...filteredValues];
+
+  console.log('gildi: ' + values);
+
+  const result = await query(q, values);
+
+  if (result.rowCount === 0) {
+    return {
+      success: false,
+      validation: [],
+      notFound: true,
+      item: null,
+    };
+  }
+
+  return {
+    success: true,
+    validation: [],
+    notFound: false,
+    item: result.rows[0],
+  };
 }
 
 async function createUser(username, password, email) {
@@ -285,6 +350,8 @@ module.exports = {
   userStrategy,
   usersList,
   usersPatch,
+  usersGetMe,
+  usersPatchMe,
   createUser,
   users,
   setAdmin,
