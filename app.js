@@ -20,6 +20,7 @@ const { // tilbúið, allar products og categories aðferðir
   productsGet,
   productsGetId,
   productsPost,
+  productsImagePost,
   productsPatch,
   productsDelete,
   categoriesGet,
@@ -217,6 +218,7 @@ app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
 
 app.get('/products/', catchErrors(productsGet));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));
+app.post('/products/:id/image', requireAuthentication, catchErrors(productsImagePost));
 app.get('/products/:id', catchErrors(productsGetId));
 app.patch('/products/:id', requireAuthentication, catchErrors(productsPatch));
 app.delete('/products/:id', requireAuthentication, catchErrors(productsDelete));
