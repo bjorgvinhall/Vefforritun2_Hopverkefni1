@@ -29,8 +29,8 @@ Notendur sem ekki eru innskráðir geta skoðað vörur og leitað í þeim.
   * Verð, heiltala, krafist
   * Lýsing, lengri texti, krafist
   * Mynd, ekki krafist, url á mynd
-  * Dagsetningu sem vöru var bætt við
-  * Flokkur, vísun í flokkstöflu
+  * Dagsetningu sem vöru var bætt við, útbúið sjálfkrafa
+  * Flokkur, krafist, vísun í flokkstöflu
 * Notendur
   * Notendanafn, einstakt, krafist
   * Netfang, einstakt, krafist
@@ -64,9 +64,17 @@ Gefnar eru myndir fyrir vörur í `img/`.
 
 Allar myndir skal geyma í [Cloudinary](https://cloudinary.com/), bæði þær sem settar eru upp í byrjun og þær sem sendar eru inn gegnum vefþjónustu.
 
+Aðeins ætti að leyfa myndir af eftirfarandi tegund (`mime type`):
+
+* jpg, `image/jpeg`
+* png, `image/png`
+* gif, `image/gif`
+
+[Þó svo að Cloudinary styðji fleiri tegundir](https://cloudinary.com/documentation/image_transformations#supported_image_formats), þá er hægt að staðfesta að við höfum mynd _áður_ en uploadað á Cloudinary.
+
 ## Vefþjónustur
 
-Útfæra skal vefþjónustur til að útfæra alla virkni. Nota skal `JSON` í öllum samskiptum.
+Útfæra skal vefþjónustur til að útfæra alla virkni. Nota skal `JSON` í öllum samskiptum (má sleppa þegar vara er búin til, sjá að neðan).
 
 GET á `/` skal skila lista af slóðum í mögulegar aðgerðir.
 
@@ -76,7 +84,7 @@ GET á `/` skal skila lista af slóðum í mögulegar aðgerðir.
   * `GET` skilar síðu af notendum, aðeins ef notandi sem framkvæmir er stjórnandi
 * `/users/:id`
   * `GET` skilar notanda, aðeins ef notandi sem framkvæmir er stjórnandi
-  * `PATCH` breytir notanda, þ.m.t. hvort viðkomandi sé stjórnandi, aðeins ef notandi sem framkvæmir er stjórnandi
+  * `PATCH` breytir hvort notandi sé stjórnandi eða ekki, aðeins ef notandi sem framkvæmir er stjórnandi og er ekki að breyta sér sjálfum
 * `/users/register`
   * `POST` staðfestir og býr til notanda. Skilar auðkenni og netfangi. Notandi sem búinn er til skal aldrei vera stjórnandi
 * `/users/login`
@@ -92,6 +100,7 @@ Aldrei skal skila eða sýna hash fyrir lykilorð.
 * `/products`
   * `GET` Skilar síðu af vörum raðað í dagsetningar röð, nýjustu vörur fyrst
   * `POST` býr til nýja vöru ef hún er gild og notandi hefur rétt til að búa til vöru, aðeins ef notandi sem framkvæmir er stjórnandi
+  * Bæði er í lagi að taka við gögnum sem `form data` þar sem bæði mynd og gögn eru send inn, eða sem `JSON` og útfæra annað route sem tekur við mynd og festir við vöru, t.d. `POST /products/{id}/image`
 * `/products?category={category}`
   * `GET` Skilar síðu af vörum í flokk, raðað í dagsetningar röð, nýjustu vörur fyrst
 * `/products?search={query}`
@@ -119,7 +128,7 @@ Aldrei skal skila eða sýna hash fyrir lykilorð.
   * `DELETE` eyðir línu úr körfu, aðeins ef notandi er innskráður, aðeins fyrir línu í körfu sem notandi á
 * `/orders`
   * `GET` skilar síðu af pöntunum, nýjustu pantanir fyrst, aðeins pantanir notanda ef ekki stjórnandi, annars allar pantanir
-  * `POST` býr til pöntun úr körfu með viðeigandi gildum, aðeins ef notandi er innskráður
+  * `POST` býr til pöntun úr körfu með viðeigandi gildum, aðeins ef notandi er innskráður, á körfu og karfa inniheldur einhverjar línur
 * `/orders/:id`
   * `GET` skilar pöntun með öllum línum, gildum pöntunar og reiknuðu heildarverði körfu, aðeins ef notandi á pöntun eða notandi er stjórnandi
 
@@ -127,7 +136,7 @@ Fyrir hvert tilvik, bæði þegar gögn eru búin til eða uppfærð, skal stað
 
 ## Annað
 
-Allar niðurstöður sem geta skilað mörgum færslum (fleiri en 10) skulu skila _síðum_.
+Allar niðurstöður sem geta skilað mörgum færslum (fleiri en 10) skulu skila _síðum_, ekki þarf að skila síðum fyrir línur í pöntun.
 
 Ekki þarf að útfæra „týnt lykilorð“ virkni.
 
