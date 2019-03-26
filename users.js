@@ -102,16 +102,16 @@ function validate({ username, password, email } = {}, patching = false) {
     }
   }
 
-  if (!isEmpty(password)) {
+  if (!patching || !isEmpty(password)) {
     if (password.length < 8) {
       errors.push({
         field: 'password',
-        message: 'Password verður að vera amk. 8 stafir',
+        message: 'Lykilorð verður að vera amk. 8 stafir',
       });
     }
   }
 
-  if (!isEmpty(email)) {
+  if (!patching || !isEmpty(email)) {
     if (typeof email !== 'string' || email.length < 1) {
       errors.push({
         field: 'email',
@@ -316,15 +316,30 @@ async function usersPatchMe(id, { username, password, email }) {
   };
 }
 
-async function createUser(username, password, email) {
+async function usersCreate(req, res) {
+  const { username, password, email } = req.body;
+  const errors = validate({ username, password, email }, false);
+  if (errors.length > 0) {
+    return res.status(400).json(errors);
+  }
+  // athuga hvort notandi sé nú þegar til
+  const q1 = 'SELECT * FROM users WHERE username = $1';
+  const usercheck = await query(q1, [username]);
+
+  // ef notandi er til þá skila error
+  if (usercheck.rows.length > 0) {
+    return res.status(400).json({ error: 'notandi nú þegar til' });
+  }
+  // ef við komumst hingað búum við til notanda
   const hashedPassword = await bcrypt.hash(password, 11);
 
   const q = `
   INSERT INTO
   users (username, password, email)
-  VALUES ($1, $2, $3, $4)`;
+  VALUES ($1, $2, $3) RETURNING username, password, email`;
 
-  return query(q, [username, hashedPassword, email]);
+  const result = await query(q, [username, hashedPassword, email]);
+  return res.status(201).json(result.rows[0]);
 }
 
 async function setAdmin(id, admin) {
@@ -352,7 +367,7 @@ module.exports = {
   usersPatch,
   usersGetMe,
   usersPatchMe,
-  createUser,
+  usersCreate,
   users,
   setAdmin,
   comparePasswords,

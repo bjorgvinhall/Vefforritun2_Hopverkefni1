@@ -13,6 +13,7 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   usersPatch,
   usersPatchMe,
   usersGetMe,
+  usersCreate, // gleymdist
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
@@ -206,12 +207,12 @@ app.get('/admin', requireAuthentication, (req, res) => {
 
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
 app.get('/users/', requireAuthentication, catchErrors(users));
+app.post('/users/register', catchErrors(usersCreate));
 app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
 app.get('/users/:id', requireAuthentication, catchErrors(userRoute));
 app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
-// register og login eru aðeins ofar í þessari skrá, meira vesen að hafa þær í users.js
-// app.post('/users/register', catchErrors(usersCreate));
+// login er aðeins ofar í þessari skrá, meira vesen að hafa í users.js
 // app.post('/users/login', catchErrors(usersLogin));
 
 app.get('/products/', catchErrors(productsGet));
