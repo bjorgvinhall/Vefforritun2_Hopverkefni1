@@ -135,7 +135,11 @@ async function usersGet(req, res) {
   SELECT * FROM users`;
 
   const result = await query(q);
-  return res.json(result.rows);
+  const users = result.rows;
+  for (let i = 0; i < users.length; i += 1) {
+    delete users[i].password;
+  }
+  return res.json(users);
 }
 
 /**
@@ -159,7 +163,6 @@ async function usersGetId(id) {
   if (!result || result.rows.length === 0) {
     return null;
   }
-
   return result.rows[0];
 }
 
@@ -175,7 +178,7 @@ async function usersPatchId(id, admin) {
     admin != null ? 'admin' : null,
   ]
     .filter(Boolean)
-    .map((field, i) => `${field} = $${i + 2}`);;
+    .map((field, i) => `${field} = $${i + 2}`);
 
   const q = `
     UPDATE users

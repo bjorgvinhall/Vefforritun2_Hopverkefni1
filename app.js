@@ -157,6 +157,7 @@ async function userGetIdRoute(req, res) {
   const { id } = req.params;
   const user = await usersGetId(id);
   if (user) {
+    delete user.password;
     return res.json(user);
   }
   return res.status(404).json({ error: 'Notandi finnst ekki' });
@@ -267,21 +268,6 @@ async function usersPatchMeRoute(req, res) {
   }
   return res.status(201).json(result.item);
 }
-/*
-async function userPatchIdRoute(req, res) {
-  const { id } = req.params;
-  const admin = req.body;
-  const result = await usersPatchId(id, admin.admin);
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
-    return res.status(404).json({ error: 'Notandi fannst ekki' });
-  }
-  return res.status(201).json(result.item);
-}
-*/
 
 /*
 Til að sjá leyndarmál, sem þú átt aðeins að sjá ef þú ert admin
