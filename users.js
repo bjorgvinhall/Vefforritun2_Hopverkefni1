@@ -170,13 +170,59 @@ async function usersList(id) {
 }
 
 /**
- * Uppfærir notanda
+ * Uppfærir stjórnandastöðu notanda
+ * @param {number} id Auðkenni notanda
+ * @param {boolean} admin Gildi sem segir til um hvort notandi sé stjórnandi
+ * @returns {Result} Niðurstaða þess að búa til notandann
+ * patch /users/admin/:id
+ */
+async function usersPatchAdmin(id, admin) {
+  /*const p = `
+  SELECT * FROM users
+  WHERE id = $1`;
+  const prev = await query(p, [id]);
+  const originalValues = prev.rows[0];
+  console.log('Notandi er admin: ' + originalValues.admin);*/
+
+  const updates = [ // admin = $2
+    admin != null ? 'admin' : null,
+  ]
+    .filter(Boolean)
+    .map((field, i) => `${field} = $${i + 2}`);;
+
+  const q = `
+    UPDATE users
+    SET ${updates} WHERE id = $1
+    RETURNING id, username, password, email, admin`;
+  const values = [id, admin];
+
+  const result = await query(q, values);
+
+  if (result.rowCount === 0) {
+    return {
+      success: false,
+      validation: [],
+      notFound: true,
+      item: null,
+    };
+  }
+
+  return {
+    success: true,
+    validation: [],
+    notFound: false,
+    item: result.rows[0],
+  };
+}
+
+/**
+ * Uppfærir upplýsingar um notanda
  * @param {number} id Auðkenni notanda
  * @param {User} user Notanda hlutur með gildum sem á að uppfæra
- * @param {boolean} admin Gildi sem segir til um hvort notandi sé stjórnandi
  * @returns {Result} Niðurstaða þess að búa til notandann
  * patch /users/:id
  */
+
 async function usersPatch(id, { username, password, email }) {
   const validation = validate({ username, password, email }, true);
 
@@ -206,7 +252,7 @@ async function usersPatch(id, { username, password, email }) {
     SET ${updates} WHERE id = $1
     RETURNING id, username, password, email, admin`;
   const values = [id, ...filteredValues];
-  
+
   const result = await query(q, values);
 
   if (result.rowCount === 0) {
@@ -225,6 +271,7 @@ async function usersPatch(id, { username, password, email }) {
     item: result.rows[0],
   };
 }
+
 
 function serializeUser(user, done) {
   done(null, user.id);
@@ -295,8 +342,6 @@ async function usersPatchMe(id, { username, password, email }) {
     RETURNING id, username, password, email, admin`;
   const values = [id, ...filteredValues];
 
-  console.log('gildi: ' + values);
-
   const result = await query(q, values);
 
   if (result.rowCount === 0) {
@@ -316,26 +361,51 @@ async function usersPatchMe(id, { username, password, email }) {
   };
 }
 
-async function createUser(username, password, email) {
-  const hashedPassword = await bcrypt.hash(password, 11);
+/**
+ * Býr til todo item.
+ *
+ * @param {TodoItem} todo Todo item til að búa til.
+ * @returns {Result} Niðurstaða þess að búa til item
+ */
+async function usersCreate({ username, password, email } = {}) {
+  const validation = validate({ username, password, email });
+
+  if (validation.length > 0) {
+    return {
+      success: false,
+      notFound: false,
+      validation,
+      item: null,
+    };
+  }
+
+  const columns = [
+    'username',
+    'password',
+    'email',
+  ].filter(Boolean);
+
+  const values = [
+    xss(username),
+    xss(password),
+    xss(email),
+  ].filter(Boolean);
+
+  const params = values.map((_, i) => `$${i + 2}`);
 
   const q = `
-  INSERT INTO
-  users (username, password, email)
-  VALUES ($1, $2, $3, $4)`;
+    INSERT INTO user (${columns.join(',')})
+    VALUES (${params})
+    RETURNING id, username, password, email, admin`;
 
-  return query(q, [username, hashedPassword, email]);
-}
+  const result = await query(q, values);
 
-async function setAdmin(id, admin) {
-  const q = `
-UPDATE users
-SET admin = $1
-WHERE id = $2`;
-
-  const result = await query(q, [admin, id]);
-
-  return result;
+  return {
+    success: true,
+    notFound: false,
+    validation: [],
+    item: result.rows[0],
+  };
 }
 
 async function comparePasswords(hash, password) {
@@ -352,8 +422,8 @@ module.exports = {
   usersPatch,
   usersGetMe,
   usersPatchMe,
-  createUser,
+  usersCreate,
   users,
-  setAdmin,
   comparePasswords,
+  usersPatchAdmin,
 };

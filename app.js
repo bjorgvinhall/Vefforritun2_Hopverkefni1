@@ -13,6 +13,8 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   usersPatch,
   usersPatchMe,
   usersGetMe,
+  usersCreate,
+  usersPatchAdmin,
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
@@ -117,7 +119,9 @@ async function userRoute(req, res) {
  * @param {object} req Request hlutur
  * @param {object} res Response hlutur
  * @returns {object} Breyttur notandi, annars villa
+ * /patch /users/:id
  */
+
 async function userPatchRoute(req, res) {
   const { id, admin } = req.params;
   const { username, password, email } = req.body;
@@ -126,6 +130,27 @@ async function userPatchRoute(req, res) {
 
   const result = await usersPatch(id, user, admin);
 
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.item);
+}
+
+/**
+ * Route hander til að breyta stjórnandastöðu notanda gegnum PATCH
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breytt stjórnandastaða notanda, annars villa
+ * /patch /users/admin/:id
+ */
+async function userPatchRouteAdmin(req, res) {
+  const { id } = req.params;
+  const admin = req.body;
+  const result = await usersPatchAdmin(id, admin.admin); // hann stoppar hér
   if (!result.success && result.validation.length > 0) {
     return res.status(400).json(result.validation);
   }
@@ -177,6 +202,9 @@ app.get('/', (req, res) => {
   });
 });
 
+/*
+Skrá sig inn
+*/
 app.post('/users/login', async (req, res) => {
   const { username, password = '' } = req.body;
 
@@ -199,6 +227,24 @@ app.post('/users/login', async (req, res) => {
   return res.status(401).json({ error: 'Invalid password' });
 });
 
+/*
+Búa til notanda
+*/
+app.post('/users/register', async (req, res) => {
+  const { username, password = '', email } = req.body;
+
+  const result = await usersCreate({ username, password, email });
+
+  if (!result.success) {
+    return res.status(400).json(result.validation);
+  }
+
+  return res.status(201).json(result.item);
+});
+
+/*
+Til að sjá leyndarmál, sem þú átt aðeins að sjá ef þú ert admin
+*/
 app.get('/admin', requireAuthentication, (req, res) => {
   res.json({ data: 'top secret' });
 });
@@ -210,6 +256,7 @@ app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
 app.get('/users/:id', requireAuthentication, catchErrors(userRoute));
 app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
+app.patch('/users/admin/:id', requireAuthentication, catchErrors(userPatchRouteAdmin));
 // register og login eru aðeins ofar í þessari skrá, meira vesen að hafa þær í users.js
 // app.post('/users/register', catchErrors(usersCreate));
 // app.post('/users/login', catchErrors(usersLogin));
