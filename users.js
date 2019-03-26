@@ -152,12 +152,6 @@ async function usersGetId(id) {
 
   try {
     result = await query(q, [id]);
-
-    /* Til að fá út objectinn, deleta fyrir skil, ekki að nota þetta atm
-    for (key in result) {
-      var value = result[key];
-      console.log(value);
-    } */
   } catch (e) {
     console.warn('Error fetching user', e);
   }
@@ -244,7 +238,7 @@ async function usersRegister(req, res) {
  * Uppfærir upplýsingar um notanda
  * @param {number} id Auðkenni notanda
  * @param {User} user Notanda hlutur með gildum sem á að uppfæra
- * @returns {Result} Niðurstaða þess að búa til notandann
+ * @returns {Result} Niðurstaða þess að uppfæra til notandann
  * patch /users/:id
  * *******************************************************************
  * ÞETTA ÞARF EKKI EN NOTUM ÞETTA TIL AÐ GERA Á USERS/ME
@@ -314,7 +308,6 @@ async function usersGetMe(id) {
 
   try {
     result = await query(q, [id]);
-
   } catch (e) {
     console.warn('Error fetching user', e);
   }
@@ -327,9 +320,10 @@ async function usersGetMe(id) {
 }
 
 /**
- * 
- * @param {*} id 
- * @param {*} param1 
+ * Uppfærir upplýsingar um notanda sem er innskráður
+ * @param {number} id Auðkenni notanda
+ * @param {User} user Notanda hlutur með gildum sem á að uppfæra
+ * @returns {Result} Niðurstaða þess að búa til notandann
  */
 async function usersPatchMe(id, { username, password, email }) {
   const validation = validate({ username, password, email }, true);
@@ -402,6 +396,6 @@ module.exports = {
   usersRegister,
   usersGetMe,
   usersPatchMe,
-  usersPatch, // þurfum ekki
+  usersPatch, // þurfum ekki, ég deleta, kv. MMJ
   comparePasswords,
 };

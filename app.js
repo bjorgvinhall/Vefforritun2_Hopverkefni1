@@ -12,9 +12,9 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   usersGetId,
   usersPatchId,
   usersRegister,
-  usersGetMe,
-  usersPatchMe,
-  usersPatch,
+  usersGetMe, // GERA MMJ
+  usersPatchMe, // GERA MMJ
+  usersPatch, // þurfum ekki, ég deleta, kv. MMJ
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
@@ -83,11 +83,11 @@ app.get('/', (req, res) => {
     users: {
       users: '/users',
       user: '/users/{id}',
-      update: '/users/{id}',
+      updateAdmin: '/users/{id}',
       register: '/users/register',
       login: '/users/login',
       me: '/users/me',
-      'Update me': '/users/me',
+      updateMe: '/users/me',
     },
     products: {
       products: '/products',
@@ -172,7 +172,7 @@ async function userGetIdRoute(req, res) {
 async function userPatchIdRoute(req, res) {
   const { id } = req.params;
   const admin = req.body;
-  const result = await usersPatchId(id, admin.admin); // hann stoppar hér
+  const result = await usersPatchId(id, admin.admin);
   if (!result.success && result.validation.length > 0) {
     return res.status(400).json(result.validation);
   }
@@ -251,12 +251,25 @@ async function userPatchRoute(req, res) {
   return res.status(201).json(result.item);
 }
 
+/**
+ * Route handler til að sækja innskráðan notanda gegnum GET
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Innskráður otandi eða villa
+ */
 async function usersGetMeRoute(req, res) {
-  // todo Melkorka gerir
+  const userLoggedIn = req.user;
+  const userId = userLoggedIn.id;
+  const result = await usersGetMe(userId);
+  if (req.user) {
+    return res.json(result);
+  }
+  return res.status(404).json({ error: 'Notandi finnst ekki' });
 }
 
 async function usersPatchMeRoute(req, res) {
   // todo Melkorka gerir
+  const result = await usersPatchMe(id, user);
 }
 
 /*
@@ -270,7 +283,7 @@ app.get('/admin', requireAuthentication, (req, res) => {
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
 app.get('/users/', requireAuthentication, catchErrors(usersGet));
 app.post('/users/register', catchErrors(usersRegister));
-app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
+app.get('/users/me/', requireAuthentication, catchErrors(usersGetMeRoute));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
 app.get('/users/:id', requireAuthentication, catchErrors(userGetIdRoute));
 app.patch('/users/:id', requireAuthentication, catchErrors(userPatchIdRoute));
