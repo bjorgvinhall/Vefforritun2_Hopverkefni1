@@ -318,6 +318,8 @@ async function productsDelete(req, res) {
 
 async function categoriesGet(req, res) {
   let { offset = 0, limit = 10 } = req.query;
+  offset = Number(offset);
+  limit = Number(limit);
 
   const q = 'SELECT * FROM categories ORDER BY id OFFSET $1 LIMIT $2';
   const result = await query(q, [offset, limit]);
@@ -343,11 +345,12 @@ async function categoriesGet(req, res) {
     };
   }
 
-
   return res.json(results);
 }
 
-async function getCategoriesId(id) {
+async function categoriesGetId(req, res) {
+  const { id } = req.params;
+
   const q = 'SELECT * FROM categories WHERE id = $1';
   let result = null;
 
@@ -358,10 +361,10 @@ async function getCategoriesId(id) {
   }
 
   if (!result || result.rows.length === 0) {
-    return null;
+    return res.status(404).json({ error: 'Item not found' });
   }
 
-  return result.rows[0];
+  return res.json(result.rows[0]);
 }
 
 async function createCategory({ category } = {}) {
@@ -568,18 +571,6 @@ async function productsPatch(req, res) {
   }
 
   return res.status(201).json(result.item);
-}
-
-async function categoriesGetId(req, res) {
-  const { id } = req.params;
-
-  const result = await getCategoriesId(id);
-
-  if (result) {
-    return res.json(result);
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
 }
 
 async function categoriesPost(req, res) {
