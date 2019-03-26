@@ -17,11 +17,15 @@ const { query } = require('./db');
  * @property {User} user Notandi
  */
 
-async function findByUsername(username) {
-  const q = 'SELECT * FROM users WHERE username = $1';
+/**
+ * Fall sem finnur notanda eftir netfangi
+ * @param {string} email netfang notanda
+ * @returns {User} notanda
+ */
+async function findByEmail(email) {
+  const q = 'SELECT * FROM users WHERE email = $1';
 
-  const result = await query(q, [username]);
-
+  const result = await query(q, [email]);
   if (result.rowCount === 1) {
     return result.rows[0];
   }
@@ -29,6 +33,11 @@ async function findByUsername(username) {
   return null;
 }
 
+/**
+ * Fall sem finnur notanda eftir auðkenni
+ * @param {number} id auðkenni notanda
+ * @returns {User} notanda
+ */
 async function findById(id) {
   const q = 'SELECT * FROM users WHERE id = $1';
 
@@ -163,6 +172,7 @@ async function usersGetId(id) {
   if (!result || result.rows.length === 0) {
     return null;
   }
+  delete result.rows[0].password;
   return result.rows[0];
 }
 
@@ -171,7 +181,7 @@ async function usersGetId(id) {
  * @param {number} id Auðkenni notanda
  * @param {boolean} admin Gildi sem segir til um hvort notandi sé stjórnandi
  * @returns {Result} Niðurstaða þess að búa til notandann
- * patch /users/admin/:id
+ * patch /users/:id
  */
 async function usersPatchId(id, admin) {
   const updates = [
@@ -187,7 +197,7 @@ async function usersPatchId(id, admin) {
   const values = [id, admin];
 
   const result = await query(q, values);
-
+  delete result.rows[0].password;
   if (result.rowCount === 0) {
     return {
       success: false,
@@ -210,6 +220,7 @@ async function usersPatchId(id, admin) {
  *
  * @param {User} user Notandi til að búa til
  * @returns {Result} Niðurstaða þess að búa til notanda
+ * post /users/register
  */
 async function usersRegister(req, res) {
   const { username, password, email } = req.body;
@@ -238,66 +249,6 @@ async function usersRegister(req, res) {
 }
 
 /**
- * Uppfærir upplýsingar um notanda
- * @param {number} id Auðkenni notanda
- * @param {User} user Notanda hlutur með gildum sem á að uppfæra
- * @returns {Result} Niðurstaða þess að uppfæra til notandann
- * patch /users/:id
- * *******************************************************************
- * ÞETTA ÞARF EKKI EN NOTUM ÞETTA TIL AÐ GERA Á USERS/ME
- * *******************************************************************
- */
-
-async function usersPatch(id, { username, password, email }) {
-  const validation = validate({ username, password, email }, true);
-
-  if (validation.length > 0) {
-    return {
-      success: false,
-      validation,
-    };
-  }
-
-  const filteredValues = [
-    xss(username),
-    xss(password),
-    xss(email),
-  ];
-
-  const updates = [
-    username ? 'username' : null,
-    password ? 'password' : null,
-    email ? 'email' : null,
-  ]
-    .filter(Boolean)
-    .map((field, i) => `${field} = $${i + 2}`);
-
-  const q = `
-    UPDATE users
-    SET ${updates} WHERE id = $1
-    RETURNING id, username, password, email, admin`;
-  const values = [id, ...filteredValues];
-
-  const result = await query(q, values);
-
-  if (result.rowCount === 0) {
-    return {
-      success: false,
-      validation: [],
-      notFound: true,
-      item: null,
-    };
-  }
-
-  return {
-    success: true,
-    validation: [],
-    notFound: false,
-    item: result.rows[0],
-  };
-}
-
-/**
  * Sækir upplýsingar um notanda sem er innskráður
  * @param {number} id Auðkenni notanda
  * @returns {object} User
@@ -318,7 +269,7 @@ async function usersGetMe(id) {
   if (!result || result.rows.length === 0) {
     return null;
   }
-
+  delete result.rows[0].password;
   return result.rows[0];
 }
 
@@ -327,6 +278,7 @@ async function usersGetMe(id) {
  * @param {number} id Auðkenni notanda
  * @param {User} user Notanda hlutur með gildum sem á að uppfæra
  * @returns {Result} Niðurstaða þess að breyta notanda
+ * patch /users/me
  */
 async function usersPatchMe(id, { password, email }) {
   const validation = validate({ password, email }, true);
@@ -356,6 +308,7 @@ async function usersPatchMe(id, { password, email }) {
   const values = [id, ...filteredValues];
 
   const result = await query(q, values);
+  delete result.rows[0].password;
 
   if (result.rowCount === 0) {
     return {
@@ -387,7 +340,7 @@ async function comparePasswords(hash, password) {
 }
 
 module.exports = {
-  findByUsername, // til að login virki
+  findByEmail, // til að login virki
   findById,
   userStrategy,
   usersGet,
@@ -396,6 +349,5 @@ module.exports = {
   usersRegister,
   usersGetMe,
   usersPatchMe,
-  usersPatch, // þurfum ekki, ég deleta, kv. MMJ
   comparePasswords,
 };
