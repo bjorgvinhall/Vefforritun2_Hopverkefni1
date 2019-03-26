@@ -14,7 +14,6 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   usersRegister,
   usersGetMe, // GERA MMJ
   usersPatchMe, // GERA MMJ
-  usersPatch, // þurfum ekki, ég deleta, kv. MMJ
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
@@ -152,6 +151,7 @@ function requireAuthentication(req, res, next) {
  * @param {object} req Request hlutur
  * @param {object} res Response hlutur
  * @returns {object} Notandi eða villa
+ * get /users/:id
  */
 async function userGetIdRoute(req, res) {
   const { id } = req.params;
@@ -167,7 +167,7 @@ async function userGetIdRoute(req, res) {
  * @param {object} req Request hlutur
  * @param {object} res Response hlutur
  * @returns {object} Breytt stjórnandastaða notanda, annars villa
- * /patch /users/admin/:id
+ * /patch /users/:id
  */
 async function userPatchIdRoute(req, res) {
   const { id } = req.params;
@@ -224,34 +224,6 @@ app.post('/users/login', async (req, res) => {
 });
 
 /**
- * Route handler til að breyta notanda gegnum PATCH
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Breyttur notandi, annars villa
- * /patch /users/:id
- * *******************************************************************
- * ÞETTA ÞARF EKKI EN ÆTLA NOTA ÞETTA TIL AÐ GERA Á USERS/ME, kv. Melkorka
- * *******************************************************************
- */
-async function userPatchRoute(req, res) {
-  const { id, admin } = req.params;
-  const { username, password, email } = req.body;
-
-  const user = { username, password, email };
-
-  const result = await usersPatch(id, user, admin);
-
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
-    return res.status(404).json({ error: 'Notandi fannst ekki' });
-  }
-  return res.status(201).json(result.item);
-}
-
-/**
  * Route handler til að sækja innskráðan notanda gegnum GET
  * @param {object} req Request hlutur
  * @param {object} res Response hlutur
@@ -267,10 +239,49 @@ async function usersGetMeRoute(req, res) {
   return res.status(404).json({ error: 'Notandi finnst ekki' });
 }
 
+/**
+ * Route hander til að breyta upplýsingum innskráðs
+ * notanda í gegnum PATCH
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breyttur notandi, annars villa
+ * /patch /users/admin/:id
+ */
 async function usersPatchMeRoute(req, res) {
-  // todo Melkorka gerir
-  const result = await usersPatchMe(id, user);
+  const userLoggedIn = req.user;
+  const userId = userLoggedIn.id;
+
+  const { password, email } = req.body;
+  const user = { password, email };
+
+  // const { id, username, admin } = req.params;
+
+  const result = await usersPatchMe(userId, user);
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.item);
 }
+/*
+async function userPatchIdRoute(req, res) {
+  const { id } = req.params;
+  const admin = req.body;
+  const result = await usersPatchId(id, admin.admin);
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.item);
+}
+*/
 
 /*
 Til að sjá leyndarmál, sem þú átt aðeins að sjá ef þú ert admin
@@ -284,10 +295,9 @@ app.get('/admin', requireAuthentication, (req, res) => {
 app.get('/users/', requireAuthentication, catchErrors(usersGet));
 app.post('/users/register', catchErrors(usersRegister));
 app.get('/users/me/', requireAuthentication, catchErrors(usersGetMeRoute));
-app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
+app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMeRoute));
 app.get('/users/:id', requireAuthentication, catchErrors(userGetIdRoute));
 app.patch('/users/:id', requireAuthentication, catchErrors(userPatchIdRoute));
-app.patch('/users/test/:id', requireAuthentication, catchErrors(userPatchRoute)); // FEIK, kv. MMJ
 
 app.get('/products/', catchErrors(productsGet));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));

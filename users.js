@@ -171,7 +171,7 @@ async function usersGetId(id) {
  * patch /users/admin/:id
  */
 async function usersPatchId(id, admin) {
-  const updates = [ // admin = $2
+  const updates = [
     admin != null ? 'admin' : null,
   ]
     .filter(Boolean)
@@ -320,13 +320,13 @@ async function usersGetMe(id) {
 }
 
 /**
- * Uppfærir upplýsingar um notanda sem er innskráður
+ * Uppfærir upplýsingar um innskráðan notanda
  * @param {number} id Auðkenni notanda
  * @param {User} user Notanda hlutur með gildum sem á að uppfæra
- * @returns {Result} Niðurstaða þess að búa til notandann
+ * @returns {Result} Niðurstaða þess að breyta notanda
  */
-async function usersPatchMe(id, { username, password, email }) {
-  const validation = validate({ username, password, email }, true);
+async function usersPatchMe(id, { password, email }) {
+  const validation = validate({ password, email }, true);
 
   if (validation.length > 0) {
     return {
@@ -336,19 +336,16 @@ async function usersPatchMe(id, { username, password, email }) {
   }
 
   const filteredValues = [
-    xss(username),
     xss(password),
     xss(email),
   ];
 
   const updates = [
-    username ? 'username' : null,
     password ? 'password' : null,
     email ? 'email' : null,
   ]
     .filter(Boolean)
     .map((field, i) => `${field} = $${i + 2}`);
-
   const q = `
     UPDATE users
     SET ${updates} WHERE id = $1
