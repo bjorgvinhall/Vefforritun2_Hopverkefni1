@@ -184,24 +184,8 @@ async function userPatchIdRoute(req, res) {
 }
 
 /*
-Búa til notanda
-*/
-app.post('/users/register', async (req, res) => {
-  const { username, password = '', email } = req.body;
-
-  const result = await usersRegister({ username, password, email });
-
-  if (!result.success) {
-    return res.status(400).json(result.validation);
-  }
-
-  return res.status(201).json(result.item);
-});
-
-/*
 Skrá sig inn
 */
-
 app.post('/users/login', async (req, res) => {
   const { email, password = '', } = req.body;
   const user = await findByEmail(email);

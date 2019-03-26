@@ -51,6 +51,22 @@ async function findById(id) {
 }
 
 /**
+ * Fall sem finnur notanda eftir netfangi
+ * @param {string} email netfang notanda
+ * @returns {User} notanda
+ */
+async function findByUsername(username) {
+  const q = 'SELECT * FROM users WHERE username = $1';
+
+  const result = await query(q, [username]);
+  if (result.rowCount === 1) {
+    return result.rows[0];
+  }
+
+  return null;
+}
+
+/**
  * Athugar hvort username og password sé til í notandakerfi.
  * Callback tekur við villu sem fyrsta argument, annað argument er
  * - `false` ef notandi ekki til eða lykilorð vitlaust
@@ -245,6 +261,7 @@ async function usersRegister(req, res) {
   VALUES ($1, $2, $3) RETURNING username, password, email`;
 
   const result = await query(q, [username, hashedPassword, email]);
+  delete result.rows[0].password;
   return res.status(201).json(result.rows[0]);
 }
 
