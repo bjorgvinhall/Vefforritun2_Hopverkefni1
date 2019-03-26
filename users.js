@@ -393,21 +393,6 @@ async function usersCreate(req, res) {
   return res.status(201).json(result.rows[0]);
 }
 
-  const q = `
-    INSERT INTO user (${columns.join(',')})
-    VALUES (${params})
-    RETURNING id, username, password, email, admin`;
-
-  const result = await query(q, values);
-
-  return {
-    success: true,
-    notFound: false,
-    validation: [],
-    item: result.rows[0],
-  };
-}
-
 async function comparePasswords(hash, password) {
   const result = await bcrypt.compare(hash, password);
 
