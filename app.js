@@ -4,7 +4,7 @@ const express = require('express');
 const passport = require('passport');
 const { Strategy, ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
-const { findById, findByUsername, comparePasswords } = require('./users');
+const { findById, findByEmail, comparePasswords } = require('./users');
 const { catchErrors } = require('./utils');
 
 const { // EKKI tilbúið, gera þessar aðferðir inní users.js
@@ -157,7 +157,6 @@ async function userGetIdRoute(req, res) {
   const { id } = req.params;
   const user = await usersGetId(id);
   if (user) {
-    delete user.password;
     return res.json(user);
   }
   return res.status(404).json({ error: 'Notandi finnst ekki' });
@@ -202,11 +201,10 @@ app.post('/users/register', async (req, res) => {
 /*
 Skrá sig inn
 */
+
 app.post('/users/login', async (req, res) => {
-  const { username, password = '' } = req.body;
-
-  const user = await findByUsername(username);
-
+  const { email, password = '', } = req.body;
+  const user = await findByEmail(email);
   if (!user) {
     return res.status(401).json({ error: 'No such user' });
   }
