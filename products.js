@@ -1,5 +1,4 @@
 const xss = require('xss');
-const isISO8601 = require('validator/lib/isISO8601');
 const { query } = require('./db');
 
 function isEmpty(s) {
@@ -68,33 +67,64 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
   return errors;
 }
 
-async function getProducts(order = 'asc', category = undefined) {
+async function productsGet(req, res) {  
+  const { order = 'asc', category = '', search = '' } = req.query;
+  let { offset = 0, limit = 10 } = req.query;
+  offset = Number(offset);
+  limit = Number(limit);
+
   let result;
+
+  // bool fyrir search og cat
 
   const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-  if (category !== undefined) {
+  if (category) {
     const q = `
     SELECT *
     FROM products
     WHERE category = $1
-    ORDER BY date`;
+    ORDER BY date
+    OFFSET $2 LIMIT $3`;
 
-    result = await query(q, [category]);
+    result = await query(q, [category, offset, limit]);
   } else {
     const q = `
     SELECT *
     FROM products
-    ORDER BY date ${orderString}`;
+    ORDER BY date ${orderString}
+    OFFSET $1 LIMIT $2`;
 
-    result = await query(q);
+    result = await query(q, [offset, limit]);
   }
 
-  return result.rows;
+  const results = {
+    links: {
+      self: {
+        href: `/products/?offset=${offset}&limit=${limit}`,
+      },
+    },
+    items: result.rows,
+  };
+
+  if (offset > 0) {
+    results.links.prev = {
+      href: `/products/?offset=${offset - limit}&limit=${limit}`,
+    };
+  }
+
+  if (result.rows.length <= limit) {
+    results.links.next = {
+      href: `/products/?offset=${Number(offset) + limit}&limit=${limit}`,
+    };
+  }
+
+  return res.json(results);
 }
 
-// Sækir vöru eftir product id
-async function getProductId(id) {
+async function productsGetId(req, res) {
+  const { id } = req.params;
+
   const q = 'SELECT * FROM products WHERE product_no = $1';
 
   let result = null;
@@ -106,10 +136,10 @@ async function getProductId(id) {
   }
 
   if (!result || result.rows.length === 0) {
-    return null;
+    return res.status(404).json({ error: 'Item not found' });
   }
 
-  return result.rows[0];
+  return res.json(result.rows[0]);
 }
 
 async function createProduct({ title, price, text, imgurl, category } = {}) {
@@ -273,22 +303,54 @@ async function updateProduct(id, { title, price, text, imgurl, category }) {
   };
 }
 
-async function deleteProduct(id) {
+async function productsDelete(req, res) {
+  const { id } = req.params;
+
   const q = 'DELETE FROM products WHERE product_no = $1';
   const result = await query(q, [id]);
 
-  return result.rowCount === 1;
+  if (result.rowCount === 1) {
+    return res.status(204).json({});
+  }
+
+  return res.status(404).json({ error: 'Item not found' });
 }
 
-// sækir lista af flokkum
-async function getCategories() {
-  const q = 'SELECT * FROM categories ORDER BY id';
-  const result = await query(q);
+async function categoriesGet(req, res) {
+  let { offset = 0, limit = 10 } = req.query;
+  offset = Number(offset);
+  limit = Number(limit);
 
-  return result.rows;
+  const q = 'SELECT * FROM categories ORDER BY id OFFSET $1 LIMIT $2';
+  const result = await query(q, [offset, limit]);
+
+  const results = {
+    links: {
+      self: {
+        href: `/categories/?offset=${offset}&limit=${limit}`,
+      },
+    },
+    items: result.rows,
+  };
+
+  if (offset > 0) {
+    results.links.prev = {
+      href: `/categories/?offset=${offset - limit}&limit=${limit}`,
+    };
+  }
+
+  if (result.rows.length <= limit) {
+    results.links.next = {
+      href: `/categories/?offset=${Number(offset) + limit}&limit=${limit}`,
+    };
+  }
+
+  return res.json(results);
 }
 
-async function getCategoriesId(id) {
+async function categoriesGetId(req, res) {
+  const { id } = req.params;
+
   const q = 'SELECT * FROM categories WHERE id = $1';
   let result = null;
 
@@ -299,10 +361,10 @@ async function getCategoriesId(id) {
   }
 
   if (!result || result.rows.length === 0) {
-    return null;
+    return res.status(404).json({ error: 'Item not found' });
   }
 
-  return result.rows[0];
+  return res.json(result.rows[0]);
 }
 
 async function createCategory({ category } = {}) {
@@ -433,75 +495,43 @@ async function updateCategory(id, { category }) {
   };
 }
 
-async function deleteCategory(id, category) {
-  /* const q1 = 'SELECT * FROM products WHERE category = $1';
-  const findItems = await query(q1, category);
+/* aðferðir sem kallað er í úr app.js */
 
-  if (findItems.rows.length > 0) {
-    const errors = [];
-    errors.push({
-      field: 'error',
-      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er eytt',
-    });
-
-    return {
-      success: false,
-      notFound: false,
-      errors,
-    };
-  } */
+async function getProductss(order = 'asc', category = undefined, search = undefined) {
   let result;
-  let errors = [];
+  let q;
 
-  const q2 = 'DELETE FROM categories WHERE id = $1';
+  const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-  try {
-    result = await query(q2, [id]);
-  } catch (e) {
-    errors.push({
-      field: 'error',
-      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er eytt',
-    });
+  if (category !== undefined) {
+    if (search === undefined) {
+      q = `
+      SELECT *
+      FROM products
+      WHERE category = $1
+      ORDER BY date`;
 
-    return {
-      success: false,
-      notFound: false,
-      errors,
-    };
+      result = await query(q, [category]);
+    } else {
+      q = `
+      SELECT *
+      FROM products
+      WHERE category = $1
+      AND title = $2 
+      ORDER BY date`;
+
+      result = await query(q, [category, search]);
+    }
+  } else {
+    q = `
+    SELECT *
+    FROM products
+    ORDER BY date ${orderString}`;
+
+    result = await query(q);
   }
 
-  if (result.rowCount === 1) {
-    return {
-      success: true,
-      notFound: false,
-    };
-  }
-
-  return {
-    success: false,
-    notFound: true,
-  };
-}
-
-// aðferðir sem kallað er í úr app.js
-async function productsGet(req, res) {
-  const { order, category } = req.query;
-
-  const result = await getProducts(order, category);
-
-  return res.json(result);
-}
-
-async function productsGetId(req, res) {
-  const { id } = req.params;
-
-  const result = await getProductId(id);
-
-  if (result) {
-    return res.json(result);
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
+  return result.rows;
 }
 
 async function productsPost(req, res) {
@@ -541,36 +571,6 @@ async function productsPatch(req, res) {
   }
 
   return res.status(201).json(result.item);
-}
-
-async function productsDelete(req, res) {
-  const { id } = req.params;
-
-  const deleted = await deleteProduct(id);
-
-  if (deleted) {
-    return res.status(204).json({});
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
-}
-
-async function categoriesGet(req, res) {
-  const result = await getCategories();
-
-  return res.json(result);
-}
-
-async function categoriesGetId(req, res) {
-  const { id } = req.params;
-
-  const result = await getCategoriesId(id);
-
-  if (result) {
-    return res.json(result);
-  }
-
-  return res.status(404).json({ error: 'Item not found' });
 }
 
 async function categoriesPost(req, res) {
@@ -615,14 +615,24 @@ async function categoriesPatch(req, res) {
 async function categoriesDelete(req, res) {
   const { id } = req.params;
 
-  const result = await deleteCategory(id);
+  let result;
+  const errors = [];
 
-  if (result.success) {
-    return res.status(204).json({});
+  const q = 'DELETE FROM categories WHERE id = $1';
+
+  try {
+    result = await query(q, [id]);
+  } catch (e) {
+    errors.push({
+      field: 'error',
+      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er eytt',
+    });
+
+    return res.status(400).json(errors);
   }
 
-  if (!result.notFound) {
-    return res.status(400).json(result.errors);
+  if (result.rowCount === 1) {
+    return res.status(204).json({});
   }
 
   return res.status(404).json({ error: 'Item not found' });

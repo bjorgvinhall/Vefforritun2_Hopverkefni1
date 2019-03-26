@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const passport = require('passport');
+const multer = require('multer');
 const { Strategy, ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 const { findById, findByUsername, comparePasswords } = require('./users');
@@ -15,12 +16,14 @@ const { // EKKI tilbúið, gera þessar aðferðir inní users.js
   usersGetMe,
   usersCreate,
   usersPatchAdmin,
+  usersCreate, // gleymdist
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
   productsGet,
   productsGetId,
   productsPost,
+  productsImagePost,
   productsPatch,
   productsDelete,
   categoriesGet,
@@ -252,17 +255,16 @@ app.get('/admin', requireAuthentication, (req, res) => {
 
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
 app.get('/users/', requireAuthentication, catchErrors(users));
+app.post('/users/register', catchErrors(usersCreate));
 app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
 app.get('/users/:id', requireAuthentication, catchErrors(userRoute));
 app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
 app.patch('/users/admin/:id', requireAuthentication, catchErrors(userPatchRouteAdmin));
-// register og login eru aðeins ofar í þessari skrá, meira vesen að hafa þær í users.js
-// app.post('/users/register', catchErrors(usersCreate));
-// app.post('/users/login', catchErrors(usersLogin));
 
 app.get('/products/', catchErrors(productsGet));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));
+app.post('/products/:id/image', requireAuthentication, catchErrors(productsImagePost));
 app.get('/products/:id', catchErrors(productsGetId));
 app.patch('/products/:id', requireAuthentication, catchErrors(productsPatch));
 app.delete('/products/:id', requireAuthentication, catchErrors(productsDelete));

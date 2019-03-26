@@ -102,16 +102,16 @@ function validate({ username, password, email } = {}, patching = false) {
     }
   }
 
-  if (!isEmpty(password)) {
+  if (!patching || !isEmpty(password)) {
     if (password.length < 8) {
       errors.push({
         field: 'password',
-        message: 'Password verður að vera amk. 8 stafir',
+        message: 'Lykilorð verður að vera amk. 8 stafir',
       });
     }
   }
 
-  if (!isEmpty(email)) {
+  if (!patching || !isEmpty(email)) {
     if (typeof email !== 'string' || email.length < 1) {
       errors.push({
         field: 'email',
@@ -367,31 +367,31 @@ async function usersPatchMe(id, { username, password, email }) {
  * @param {TodoItem} todo Todo item til að búa til.
  * @returns {Result} Niðurstaða þess að búa til item
  */
-async function usersCreate({ username, password, email } = {}) {
-  const validation = validate({ username, password, email });
-
-  if (validation.length > 0) {
-    return {
-      success: false,
-      notFound: false,
-      validation,
-      item: null,
-    };
+async function usersCreate(req, res) {
+  const { username, password, email } = req.body;
+  const errors = validate({ username, password, email }, false);
+  if (errors.length > 0) {
+    return res.status(400).json(errors);
   }
+  // athuga hvort notandi sé nú þegar til
+  const q1 = 'SELECT * FROM users WHERE username = $1';
+  const usercheck = await query(q1, [username]);
 
-  const columns = [
-    'username',
-    'password',
-    'email',
-  ].filter(Boolean);
+  // ef notandi er til þá skila error
+  if (usercheck.rows.length > 0) {
+    return res.status(400).json({ error: 'notandi nú þegar til' });
+  }
+  // ef við komumst hingað búum við til notanda
+  const hashedPassword = await bcrypt.hash(password, 11);
 
-  const values = [
-    xss(username),
-    xss(password),
-    xss(email),
-  ].filter(Boolean);
+  const q = `
+  INSERT INTO
+  users (username, password, email)
+  VALUES ($1, $2, $3) RETURNING username, password, email`;
 
-  const params = values.map((_, i) => `$${i + 2}`);
+  const result = await query(q, [username, hashedPassword, email]);
+  return res.status(201).json(result.rows[0]);
+}
 
   const q = `
     INSERT INTO user (${columns.join(',')})
