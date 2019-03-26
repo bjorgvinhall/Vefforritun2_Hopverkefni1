@@ -130,7 +130,7 @@ function validate({ username, password, email } = {}, patching = false) {
  * @returns {array} Fylki af notendum
  * get /users/
  */
-async function users(req, res) {
+async function usersGet(req, res) {
   const q = `
   SELECT * FROM users`;
 
@@ -144,7 +144,7 @@ async function users(req, res) {
  * @returns {object} User ef hann er til, annars null
  * get /users/:id
  */
-async function usersList(id) {
+async function usersGetId(id) {
   const q = `
   SELECT * FROM users
   WHERE id = $1`;
@@ -176,14 +176,7 @@ async function usersList(id) {
  * @returns {Result} Niðurstaða þess að búa til notandann
  * patch /users/admin/:id
  */
-async function usersPatchAdmin(id, admin) {
-  /*const p = `
-  SELECT * FROM users
-  WHERE id = $1`;
-  const prev = await query(p, [id]);
-  const originalValues = prev.rows[0];
-  console.log('Notandi er admin: ' + originalValues.admin);*/
-
+async function usersPatchId(id, admin) {
   const updates = [ // admin = $2
     admin != null ? 'admin' : null,
   ]
@@ -216,11 +209,46 @@ async function usersPatchAdmin(id, admin) {
 }
 
 /**
+ * Býr til nýjan notanda
+ *
+ * @param {User} user Notandi til að búa til
+ * @returns {Result} Niðurstaða þess að búa til notanda
+ */
+async function usersRegister(req, res) {
+  const { username, password, email } = req.body;
+  const errors = validate({ username, password, email }, false);
+  if (errors.length > 0) {
+    return res.status(400).json(errors);
+  }
+  // athuga hvort notandi sé nú þegar til
+  const q1 = 'SELECT * FROM users WHERE username = $1';
+  const usercheck = await query(q1, [username]);
+
+  // ef notandi er til þá skila error
+  if (usercheck.rows.length > 0) {
+    return res.status(400).json({ error: 'notandi nú þegar til' });
+  }
+  // ef við komumst hingað búum við til notanda
+  const hashedPassword = await bcrypt.hash(password, 11);
+
+  const q = `
+  INSERT INTO
+  users (username, password, email)
+  VALUES ($1, $2, $3) RETURNING username, password, email`;
+
+  const result = await query(q, [username, hashedPassword, email]);
+  return res.status(201).json(result.rows[0]);
+}
+
+/**
  * Uppfærir upplýsingar um notanda
  * @param {number} id Auðkenni notanda
  * @param {User} user Notanda hlutur með gildum sem á að uppfæra
  * @returns {Result} Niðurstaða þess að búa til notandann
  * patch /users/:id
+ * *******************************************************************
+ * ÞETTA ÞARF EKKI EN NOTUM ÞETTA TIL AÐ GERA Á USERS/ME
+ * *******************************************************************
  */
 
 async function usersPatch(id, { username, password, email }) {
@@ -272,20 +300,6 @@ async function usersPatch(id, { username, password, email }) {
   };
 }
 
-
-function serializeUser(user, done) {
-  done(null, user.id);
-}
-
-async function deserializeUser(id, done) {
-  try {
-    const user = await findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
-}
-
 /**
  * Sækir upplýsingar um notanda sem er innskráður
  * @param {number} id Auðkenni notanda
@@ -312,6 +326,11 @@ async function usersGetMe(id) {
   return result.rows[0];
 }
 
+/**
+ * 
+ * @param {*} id 
+ * @param {*} param1 
+ */
 async function usersPatchMe(id, { username, password, email }) {
   const validation = validate({ username, password, email }, true);
 
@@ -362,37 +381,11 @@ async function usersPatchMe(id, { username, password, email }) {
 }
 
 /**
- * Býr til todo item.
- *
- * @param {TodoItem} todo Todo item til að búa til.
- * @returns {Result} Niðurstaða þess að búa til item
+ * Ber saman innslegið lykilorð við lykilorðið aðgangs
+ * @param {string} hash lykilorð aðgangs
+ * @param {string} password innslegið lykilorð
+ * @returns {Result} Niðurstaða samanborningar
  */
-async function usersCreate(req, res) {
-  const { username, password, email } = req.body;
-  const errors = validate({ username, password, email }, false);
-  if (errors.length > 0) {
-    return res.status(400).json(errors);
-  }
-  // athuga hvort notandi sé nú þegar til
-  const q1 = 'SELECT * FROM users WHERE username = $1';
-  const usercheck = await query(q1, [username]);
-
-  // ef notandi er til þá skila error
-  if (usercheck.rows.length > 0) {
-    return res.status(400).json({ error: 'notandi nú þegar til' });
-  }
-  // ef við komumst hingað búum við til notanda
-  const hashedPassword = await bcrypt.hash(password, 11);
-
-  const q = `
-  INSERT INTO
-  users (username, password, email)
-  VALUES ($1, $2, $3) RETURNING username, password, email`;
-
-  const result = await query(q, [username, hashedPassword, email]);
-  return res.status(201).json(result.rows[0]);
-}
-
 async function comparePasswords(hash, password) {
   const result = await bcrypt.compare(hash, password);
 
@@ -403,12 +396,12 @@ module.exports = {
   findByUsername, // til að login virki
   findById,
   userStrategy,
-  usersList,
-  usersPatch,
+  usersGet,
+  usersGetId,
+  usersPatchId,
+  usersRegister,
   usersGetMe,
   usersPatchMe,
-  usersCreate,
-  users,
+  usersPatch, // þurfum ekki
   comparePasswords,
-  usersPatchAdmin,
 };
