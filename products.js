@@ -70,7 +70,7 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
 }
 
 async function productsGet(req, res) {  
-  const { order = 'asc', category = '', search = '' } = req.query;
+  const { order = 'desc', category = '', search = '' } = req.query;
   let { offset = 0, limit = 10 } = req.query;
   offset = Number(offset);
   limit = Number(limit);
@@ -79,7 +79,7 @@ async function productsGet(req, res) {
 
   // bool fyrir search og cat
 
-  const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+  const orderString = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   if (search && category) {
     const q = `
@@ -89,7 +89,7 @@ async function productsGet(req, res) {
       to_tsvector('english', title) @@ plainto_tsquery('english', $2)
       OR
       to_tsvector('english', text) @@ plainto_tsquery('english', $2)
-    ORDER BY date
+    ORDER BY date ${orderString}
     OFFSET $3 LIMIT $4`;
 
     result = await query(q, [category, search, offset, limit]);
@@ -98,7 +98,7 @@ async function productsGet(req, res) {
     SELECT *
     FROM products
     WHERE category = $1
-    ORDER BY date
+    ORDER BY date ${orderString}
     OFFSET $2 LIMIT $3`;
 
     result = await query(q, [category, offset, limit]);
@@ -109,7 +109,7 @@ async function productsGet(req, res) {
       to_tsvector('english', title) @@ plainto_tsquery('english', $1)
       OR
       to_tsvector('english', text) @@ plainto_tsquery('english', $1)
-    ORDER BY date
+    ORDER BY date ${orderString}
     OFFSET $2 LIMIT $3`;
 
     result = await query(q, [search, offset, limit]);
@@ -563,43 +563,6 @@ async function updateCategory(id, { category }) {
 }
 
 /* aðferðir sem kallað er í úr app.js */
-
-async function getProductss(order = 'asc', category = undefined, search = undefined) {
-  let result;
-  let q;
-
-  const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-
-  if (category !== undefined) {
-    if (search === undefined) {
-      q = `
-      SELECT *
-      FROM products
-      WHERE category = $1
-      ORDER BY date`;
-
-      result = await query(q, [category]);
-    } else {
-      q = `
-      SELECT *
-      FROM products
-      WHERE category = $1
-      AND title = $2 
-      ORDER BY date`;
-
-      result = await query(q, [category, search]);
-    }
-  } else {
-    q = `
-    SELECT *
-    FROM products
-    ORDER BY date ${orderString}`;
-
-    result = await query(q);
-  }
-
-  return result.rows;
-}
 
 async function productsPost(req, res) {
   const { title, price, text, imgurl, category } = req.body;
