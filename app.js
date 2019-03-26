@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const express = require('express');
 const passport = require('passport');
-const multer = require('multer');
 const { Strategy, ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 const { findById, findByUsername, comparePasswords } = require('./users');
