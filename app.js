@@ -22,6 +22,7 @@ const {
   productsPost,
   productsImagePost,
   productsPatch,
+  productsImagePatch,
   productsDelete,
   categoriesGet,
   categoriesGetId,
@@ -97,6 +98,7 @@ app.get('/', (req, res) => {
       create: '/products',
       'products by date': '/products?category={category}',
       'products by search': '/products?search={query}',
+      image: '/products/{id}/image',
       product: '/products/{id}',
       update: '/products/{id}',
       delete: '/products/{id}',
@@ -278,6 +280,7 @@ app.post('/products/', requireAuthentication, isAdmin, catchErrors(productsPost)
 app.post('/products/:id/image', requireAuthentication, catchErrors(productsImagePost));
 app.get('/products/:id', catchErrors(productsGetId));
 app.patch('/products/:id', requireAuthentication, isAdmin, catchErrors(productsPatch));
+app.patch('/products/:id/image', requireAuthentication, catchErrors(productsImagePatch));
 app.delete('/products/:id', requireAuthentication, isAdmin, catchErrors(productsDelete));
 
 app.get('/categories/', catchErrors(categoriesGet));
