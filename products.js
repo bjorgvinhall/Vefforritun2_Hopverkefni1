@@ -1,7 +1,6 @@
 const xss = require('xss');
 const fs = require('fs');
 const multer = require('multer');
-const cloudinary = require('cloudinary');
 const { uploadCloudinary } = require('./utils');
 const { query } = require('./db');
 
@@ -17,7 +16,7 @@ function isEmpty(s) {
  * @param {boolean} [isProduct=false]
  * @returns {array} Fylki af villum sem komu upp, tómt ef engin villa
  */
-function validate({ title, price, text, imgurl, category } = {}, isProduct = false) {
+function validate({ title, price, text, imgurl, category } = {}, isProduct = false) {                                                                      // eslint-disable-line
   const errors = [];
   if (isProduct) {
     if (title === undefined
@@ -298,17 +297,18 @@ async function productsImagePost(req, res) {
   }
 
   const storage = multer.diskStorage({
-    destination(req, file, cb) {
+    destination(req, file, cb) { // eslint-disable-line
       cb(null, 'temp/');
     },
-    filename(req, file, cb) {
-      cb(null, file.fieldname + '-' + Date.now() + '.jpg');
+    filename(req, file, cb) { // eslint-disable-line
+      cb(null, file.fieldname + '-' + Date.now() + '.jpg'); // eslint-disable-line
     },
   });
 
   const upload = multer({ storage }).single('imgurl');
 
   upload(req, res, async (err) => {
+    let result;
     if (err) {
       res.status(400).json({ error: 'An unknown error occurred when uploading' });
     } else {
@@ -326,14 +326,13 @@ async function productsImagePost(req, res) {
       RETURNING *`;
       const values = [id, link];
 
-      const result = await query(sqlQuery, values);
+      result = await query(sqlQuery, values);
 
       if (result.rowCount === 0) {
         return res.status(404).json({ error: 'Item not found' });
       }
-
-      return res.status(201).json(result.rows[0]);
     }
+    return res.status(201).json(result.rows[0]);
   });
 
   return 0;
@@ -442,17 +441,18 @@ async function productsImagePatch(req, res) {
   }
 
   const storage = multer.diskStorage({
-    destination(req, file, cb) {
+    destination(req, file, cb) { // eslint-disable-line
       cb(null, 'temp/');
     },
-    filename(req, file, cb) {
-      cb(null, file.fieldname + '-' + Date.now() + '.jpg');
+    filename(req, file, cb) { // eslint-disable-line
+      cb(null, file.fieldname + '-' + Date.now() + '.jpg'); // eslint-disable-line
     },
   });
 
   const upload = multer({ storage }).single('imgurl');
 
   upload(req, res, async (err) => {
+    let result;
     if (err) {
       res.status(400).json({ error: 'An unknown error occurred when uploading' });
     } else {
@@ -470,14 +470,13 @@ async function productsImagePatch(req, res) {
       RETURNING *`;
       const values = [id, link];
 
-      const result = await query(sqlQuery, values);
+      result = await query(sqlQuery, values);
 
       if (result.rowCount === 0) {
         return res.status(404).json({ error: 'Item not found' });
       }
-
-      return res.status(201).json(result.rows[0]);
     }
+    return res.status(201).json(result.rows[0]);
   });
 
   return 0;

@@ -2,7 +2,7 @@ const xss = require('xss');
 
 const cloudinary = require('cloudinary');
 
-const { query } = require('./db');
+// const { query } = require('./db');
 
 const {
   CLOUDINARY_CLOUD,
