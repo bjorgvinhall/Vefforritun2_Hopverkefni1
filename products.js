@@ -2,7 +2,7 @@ const xss = require('xss');
 const fs = require('fs');
 const multer = require('multer');
 const cloudinary = require('cloudinary');
-const { uploadCloudinary } = require('./faker');
+const { uploadCloudinary } = require('./utils');
 const { query } = require('./db');
 
 function isEmpty(s) {
@@ -335,18 +335,18 @@ async function productsImagePost(req, res, next) {
   let nameOfFile = '';
 
   const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, 'temp/')
+    destination(req, file, cb) {
+      cb(null, 'temp/');
     },
-    filename: function (req, file, cb) {
-      cb(null, file.fieldname + '-' + Date.now() + '.jpg')
-    }
+    filename(req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + '.jpg');
+    },
   });
 
-  const upload = multer({ storage: storage }).single('imgurl');
+  const upload = multer({ storage }).single('imgurl');
 
 
-  upload(req, res, function (err) {
+  upload(req, res, async (err) => { // async verður að vera hér
     if (err) {
       // An unknown error occurred when uploading.
     }
@@ -356,18 +356,16 @@ async function productsImagePost(req, res, next) {
       console.log('Ronja')
       console.log(pathname);
       console.log('hæ');
-      
+
       const link = uploadCloudinary(pathname);
       console.log('bæ');
       console.log(link);
-
-
     });
 
     res.json({
       success: true,
-      message: 'Image uploaded!'
-    })
+      message: 'Image uploaded!',
+    });
   });
 }
 
