@@ -2,8 +2,6 @@ const xss = require('xss');
 
 const cloudinary = require('cloudinary');
 
-// const { query } = require('./db');
-
 const {
   CLOUDINARY_CLOUD,
   CLOUDINARY_API_KEY,
