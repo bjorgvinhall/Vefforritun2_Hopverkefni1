@@ -7,16 +7,16 @@ const jwt = require('jsonwebtoken');
 const { findById, findByEmail, comparePasswords } = require('./users');
 const { catchErrors } = require('./utils');
 
-const { // EKKI tilbúið, gera þessar aðferðir inní users.js
+const {
   usersGet,
   usersGetId,
   usersPatchId,
   usersRegister,
-  usersGetMe, // GERA MMJ
-  usersPatchMe, // GERA MMJ
+  usersGetMe,
+  usersPatchMe,
 } = require('./users');
 
-const { // tilbúið, allar products og categories aðferðir
+const {
   productsGet,
   productsGetId,
   productsPost,
@@ -30,7 +30,7 @@ const { // tilbúið, allar products og categories aðferðir
   categoriesDelete,
 } = require('./products');
 
-const { // EKKI tilbúið, útfæra þessar aðferðir inní cart.js
+const {
   cartsList,
   cartAdd,
   cartList,
@@ -77,6 +77,10 @@ passport.use(new Strategy(jwtOptions, strat));
 app.use(passport.initialize());
 app.use(passport.session());
 
+/**
+ * Upphafssíða.
+ * Það sem birtist þegar skipunin '/' er keyrð á get
+ */
 app.get('/', (req, res) => {
   res.json({
     users: {
@@ -146,6 +150,12 @@ function requireAuthentication(req, res, next) {
   )(req, res, next);
 }
 
+/**
+ * Fall sem athugar hvort að innskráður notandi sé stjórnandi
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * @param {object} next næsti hlutur
+ */
 function isAdmin(req, res, next) {
   if (!req.user.admin) {
     return res.status(401).json({ error: 'Notandi verður að vera admin' });
@@ -244,8 +254,6 @@ async function usersPatchMeRoute(req, res) {
   const { password, email } = req.body;
   const user = { password, email };
 
-  // const { id, username, admin } = req.params;
-
   const result = await usersPatchMe(userId, user);
 
   if (!result.success && result.validation.length > 0) {
@@ -257,14 +265,6 @@ async function usersPatchMeRoute(req, res) {
   }
   return res.status(201).json(result.item);
 }
-
-/*
-Til að sjá leyndarmál, sem þú átt aðeins að sjá ef þú ert admin
-*/
-app.get('/admin', requireAuthentication, (req, res) => {
-  res.json({ data: 'top secret' });
-});
-
 
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
 app.get('/users/', requireAuthentication, isAdmin, catchErrors(usersGet));
