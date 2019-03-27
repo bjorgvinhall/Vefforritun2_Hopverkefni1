@@ -1,14 +1,9 @@
 const xss = require('xss');
 // const multer = require('multer');
-// const cloudinary = require("cloudinary-core");
+const cloudinary = require('cloudinary');
+
 const { query } = require('./db');
 
-/**
- * Athugar hvort strengur sé "tómur", þ.e.a.s. `null`, `undefined`.
- *
- * @param {string} s Strengur til að athuga
- * @returns {boolean} `true` ef `s` er "tómt", annars `false`
- */
 function isEmpty(s) {
   return s == null && !s;
 }
