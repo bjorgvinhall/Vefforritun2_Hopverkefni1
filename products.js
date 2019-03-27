@@ -1,7 +1,7 @@
+/* eslint-disable object-curly-newline */
 const xss = require('xss');
 const fs = require('fs');
 const multer = require('multer');
-const cloudinary = require('cloudinary');
 const { uploadCloudinary } = require('./utils');
 const { query } = require('./db');
 
@@ -308,32 +308,28 @@ async function productsImagePost(req, res) {
 
   const upload = multer({ storage }).single('imgurl');
 
-  upload(req, res, async (err) => {
-    if (err) {
-      res.status(400).json({ error: 'An unknown error occurred when uploading' });
-    } else {
-      let pathname;
-      fs.readdirSync('./temp/').forEach((file) => {
-        pathname = `./temp/${file}`;
-      });
+  upload(req, res, async () => {
+    let pathname;
+    fs.readdirSync('./temp/').forEach((file) => {
+      pathname = `./temp/${file}`;
+    });
 
-      const link = await uploadCloudinary(pathname);
-      console.info(link);
+    const link = await uploadCloudinary(pathname);
+    console.info(link);
 
-      const sqlQuery = `
-      UPDATE products
-      SET imgurl = $2 WHERE product_no = $1
-      RETURNING *`;
-      const values = [id, link];
+    const sqlQuery = `
+    UPDATE products
+    SET imgurl = $2 WHERE product_no = $1
+    RETURNING *`;
+    const values = [id, link];
 
-      const result = await query(sqlQuery, values);
+    const result = await query(sqlQuery, values);
 
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Item not found' });
-      }
-
-      return res.status(201).json(result.rows[0]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Item not found' });
     }
+
+    return res.status(201).json(result.rows[0]);
   });
 
   return 0;
@@ -452,32 +448,28 @@ async function productsImagePatch(req, res) {
 
   const upload = multer({ storage }).single('imgurl');
 
-  upload(req, res, async (err) => {
-    if (err) {
-      res.status(400).json({ error: 'An unknown error occurred when uploading' });
-    } else {
-      let pathname;
-      fs.readdirSync('./temp/').forEach((file) => {
-        pathname = `./temp/${file}`;
-      });
+  upload(req, res, async () => {
+    let pathname;
+    fs.readdirSync('./temp/').forEach((file) => {
+      pathname = `./temp/${file}`;
+    });
 
-      const link = await uploadCloudinary(pathname);
-      console.info(link);
+    const link = await uploadCloudinary(pathname);
+    console.info(link);
 
-      const sqlQuery = `
-      UPDATE products
-      SET imgurl = $2 WHERE product_no = $1
-      RETURNING *`;
-      const values = [id, link];
+    const sqlQuery = `
+    UPDATE products
+    SET imgurl = $2 WHERE product_no = $1
+    RETURNING *`;
+    const values = [id, link];
 
-      const result = await query(sqlQuery, values);
+    const result = await query(sqlQuery, values);
 
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Item not found' });
-      }
-
-      return res.status(201).json(result.rows[0]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Item not found' });
     }
+
+    return res.status(201).json(result.rows[0]);
   });
 
   return 0;
