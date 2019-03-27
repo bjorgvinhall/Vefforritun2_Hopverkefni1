@@ -280,58 +280,23 @@ async function productsPost(req, res) {
   return res.status(201).json(result.rows[0]);
 }
 
-async function meProfileRoute(req, res, next) {
-  const { file: { path } = {} } = req;
-  const { id } = req.user;
-
-  const user = await findById(id);
-
-  if (user === null) {
-    return res.status(404).json({ error: 'You not found' });
-  }
-
-  if (!path) {
-    return res.status(400).json({ error: 'Unable to read image' });
-  }
-
-  let upload = null;
-
-  try {
-    upload = await cloudinary.v2.uploader.upload(path);
-  } catch (error) {
-    if (error.http_code && error.http_code === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    console.error('Unable to upload file to cloudinary:', path);
-    return next(error);
-  }
-
-  const q = 'UPDATE users SET image = $1 WHERE id = $2 RETURNING *';
-
-  const result = await query(q, [upload.secure_url, user.id]);
-
-  const row = result.rows[0];
-  delete row.password;
-
-  return res.status(201).json(row);
-}
-
-async function meProfileRouteWithMulter(req, res, next) {
-  uploads.single('profile')(req, res, (err) => {
-    if (err) {
-      if (err.message === 'Unexpected field') {
-        return res.status(400).json({ error: 'Unable to read image' });
-      }
-
-      return next(err);
-    }
-
-    return meProfileRoute(req, res, next);
-  });
-}
-
+/**
+ * Route handler til að setja inn mynd á vöru gegnum POST.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Vara eða villa
+ */
 async function productsImagePost(req, res) {
+  const { id } = req.params;
+
+  // athuga hvort vara sé til, ef ekki þá skila error
+  const q2 = 'SELECT * FROM products WHERE product_no = $1';
+  const checkProductName = await query(q2, [id]);
+  if (checkProductName.rows.length === 0) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
   const storage = multer.diskStorage({
     destination(req, file, cb) {
       cb(null, 'temp/');
@@ -345,21 +310,33 @@ async function productsImagePost(req, res) {
 
   upload(req, res, async (err) => {
     if (err) {
-      res.json({ error: 'An unknown error occurred when uploading' });
+      res.status(400).json({ error: 'An unknown error occurred when uploading' });
+    } else {
+      let pathname;
+      fs.readdirSync('./temp/').forEach((file) => {
+        pathname = `./temp/${file}`;
+      });
+
+      const link = await uploadCloudinary(pathname);
+      console.info(link);
+
+      const sqlQuery = `
+      UPDATE products
+      SET imgurl = $2 WHERE product_no = $1
+      RETURNING *`;
+      const values = [id, link];
+
+      const result = await query(sqlQuery, values);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+
+      return res.status(201).json(result.rows[0]);
     }
-    let pathname;
-    fs.readdirSync('./temp/').forEach((file) => {
-      pathname = `./temp/${file}`;
-    });
-
-    const link = await uploadCloudinary(pathname);
-    console.info(link);
-
-    res.json({
-      success: true,
-      message: 'Image uploaded!',
-    });
   });
+
+  return 0;
 }
 
 /**
@@ -445,6 +422,65 @@ async function productsPatch(req, res) {
   }
 
   return res.status(201).json(result.rows[0]);
+}
+
+/**
+ * Route handler til að breyta mynd á vöru gegnum PATCH.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breytt vara eða villa
+ */
+async function productsImagePatch(req, res) {
+  const { id } = req.params;
+
+  // athuga hvort vara sé til, ef ekki þá skila error
+  const q2 = 'SELECT * FROM products WHERE product_no = $1';
+  const checkProductName = await query(q2, [id]);
+  if (checkProductName.rows.length === 0) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  const storage = multer.diskStorage({
+    destination(req, file, cb) {
+      cb(null, 'temp/');
+    },
+    filename(req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + '.jpg');
+    },
+  });
+
+  const upload = multer({ storage }).single('imgurl');
+
+  upload(req, res, async (err) => {
+    if (err) {
+      res.status(400).json({ error: 'An unknown error occurred when uploading' });
+    } else {
+      let pathname;
+      fs.readdirSync('./temp/').forEach((file) => {
+        pathname = `./temp/${file}`;
+      });
+
+      const link = await uploadCloudinary(pathname);
+      console.info(link);
+
+      const sqlQuery = `
+      UPDATE products
+      SET imgurl = $2 WHERE product_no = $1
+      RETURNING *`;
+      const values = [id, link];
+
+      const result = await query(sqlQuery, values);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+
+      return res.status(201).json(result.rows[0]);
+    }
+  });
+
+  return 0;
 }
 
 /**
@@ -696,6 +732,7 @@ module.exports = {
   productsPost,
   productsImagePost,
   productsPatch,
+  productsImagePatch,
   productsDelete,
   categoriesGet,
   categoriesGetId,
