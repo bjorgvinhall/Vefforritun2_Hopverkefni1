@@ -92,7 +92,7 @@ app.get('/', (req, res) => {
       products: '/products',
       create: '/products',
       'products by date': '/products?category={category}',
-      'products by search': '/products?category={category}',
+      'products by search': '/products?search={query}',
       product: '/products/{id}',
       update: '/products/{id}',
       delete: '/products/{id}',
