@@ -271,21 +271,21 @@ app.get('/users/', requireAuthentication, isAdmin, catchErrors(usersGet));
 app.post('/users/register', catchErrors(usersRegister));
 app.get('/users/me/', requireAuthentication, catchErrors(usersGetMeRoute));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMeRoute));
-app.get('/users/:id', requireAuthentication, catchErrors(userGetIdRoute));
-app.patch('/users/:id', requireAuthentication, catchErrors(userPatchIdRoute));
+app.get('/users/:id', requireAuthentication, isAdmin, catchErrors(userGetIdRoute));
+app.patch('/users/:id', requireAuthentication, isAdmin, catchErrors(userPatchIdRoute));
 
 app.get('/products/', catchErrors(productsGet));
-app.post('/products/', requireAuthentication, catchErrors(productsPost));
+app.post('/products/', requireAuthentication, isAdmin, catchErrors(productsPost));
 app.post('/products/:id/image', requireAuthentication, catchErrors(productsImagePost));
 app.get('/products/:id', catchErrors(productsGetId));
-app.patch('/products/:id', requireAuthentication, catchErrors(productsPatch));
-app.delete('/products/:id', requireAuthentication, catchErrors(productsDelete));
+app.patch('/products/:id', requireAuthentication, isAdmin, catchErrors(productsPatch));
+app.delete('/products/:id', requireAuthentication, isAdmin, catchErrors(productsDelete));
 
 app.get('/categories/', catchErrors(categoriesGet));
-app.post('/categories/', requireAuthentication, catchErrors(categoriesPost));
+app.post('/categories/', requireAuthentication, isAdmin, catchErrors(categoriesPost));
 app.get('/categories/:id', catchErrors(categoriesGetId));
-app.patch('/categories/:id', requireAuthentication, catchErrors(categoriesPatch));
-app.delete('/categories/:id', requireAuthentication, catchErrors(categoriesDelete));
+app.patch('/categories/:id', requireAuthentication, isAdmin, catchErrors(categoriesPatch));
+app.delete('/categories/:id', requireAuthentication, isAdmin, catchErrors(categoriesDelete));
 
 app.get('/cart', requireAuthentication, catchErrors(cartsList));
 app.post('/cart', requireAuthentication, catchErrors(cartAdd));
