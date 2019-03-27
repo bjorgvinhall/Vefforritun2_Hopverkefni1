@@ -14,19 +14,18 @@ const { isEmpty } = require('./utils');
 async function createNewCart(username) {
   const user = await query('SELECT * FROM users WHERE username = $1', [username]);
   if (user.rows.length !== 1) {
-    console.log('Notandi ekki til');
+    console.error('Notandi ekki til');
     return;
   }
   const userCart = await query('SELECT * FROM cart WHERE username = $1 AND isOrder = false', [username]);
-  console.log(userCart);
   if (userCart.rows.length > 0) { // notandi á þegar körfu sem er ekki pöntun
-    console.log('Notandi á þegar körfu');
+    console.error('Notandi á þegar körfu');
     return;
   }
   const userOrder = await query('SELECT * FROM cart WHERE username = $1 AND isOrder = true', [username]);
   if (userOrder.rows.length !== 0) {
     const { name = '', address = '' } = userOrder.rows[0];
-    await query('INSERT INTO cart (username, name, address) VALUES ($1, $2, $3)', [username, name, address]);  
+    await query('INSERT INTO cart (username, name, address) VALUES ($1, $2, $3)', [username, name, address]);
   } else {
     await query('INSERT INTO cart (username) VALUES ($1)', [username]);
   }
@@ -59,7 +58,7 @@ async function cartsList(req, res) {
   for (let i=0; i<result.rows.length; i++){ // eslint-disable-line
     productInfo = await query('SELECT * FROM products WHERE title = $1', [result.rows[i].title]);
     rowtotal = result.rows[i].quantity * productInfo.rows[0].price;
-    result.rows[i]['total'] = rowtotal;
+    result.rows[i].total = rowtotal;
     result.rows[i]['line number'] = i + 1;
     total += rowtotal;
     delete result.rows[i].username;
@@ -68,7 +67,6 @@ async function cartsList(req, res) {
   const element = {};
   element['cart total'] = total;
   result.rows[result.rows.length] = element;
-  // return res.json(result.rows);
 
   const results = {
     limit: `${limit}`,
@@ -105,7 +103,7 @@ async function cartsList(req, res) {
  */
 async function cartAdd(req, res) {
   const errors = [];
-  const { isOrder = false, title, quantity } = req.body;
+  const { title, quantity } = req.body;
   // athuga hvort flokkur sé til
   let q = `SELECT * FROM products WHERE title = '${title}'`;
   const check = await query(q);
@@ -220,11 +218,10 @@ async function ordersList(req, res) {
   offset = Number(offset);
   limit = Number(limit);
 
-  let result = {};
+  const result = {};
   let q = '';
   if (admin) {
     // lista allar pantanir
-    console.log("admin")
     q = 'SELECT * FROM cart WHERE isOrder = true ORDER BY date DESC OFFSET $1 LIMIT $2';
     const findOrders = await query(q, [offset, limit]);
     for (let i = 0; i < findOrders.rows.length; i++) {

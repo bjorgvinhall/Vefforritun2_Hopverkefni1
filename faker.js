@@ -72,7 +72,7 @@ async function main() {
     const file = images[i];
     cloud = await uploadCloudinary(file);
     imagesURL.push(cloud);
-    console.log("image", i + 1, "uploaded");
+    console.info('image', i + 1, 'uploaded');
   }
 
   while (products.length < productAmount) {
