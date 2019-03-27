@@ -17,7 +17,7 @@ CREATE TABLE users (
   id        SERIAL,
   username  TEXT primary key not null unique,
   password  TEXT not null, 
-  email     TEXT not null,
+  email     TEXT not null unique,
   admin     BOOLEAN default false
 );
 

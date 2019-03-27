@@ -1,4 +1,6 @@
+/* eslint-disable object-curly-newline */
 const xss = require('xss');
+const validator = require('validator');
 const bcrypt = require('bcrypt');
 const { query } = require('./db');
 const { createNewCart } = require('./cart');
@@ -116,7 +118,7 @@ function isEmpty(s) {
  * @param {boolean} [patching=false]
  * @returns {array} Fylki af villum sem komu upp, tómt ef engin villa
  */
-function validate({ username, password, email } = {}, patching = false) {
+function validate({ username, password, email, name, address } = {}, patching = false) {
   const errors = [];
 
   if (!patching || !isEmpty(username)) {
@@ -126,7 +128,7 @@ function validate({ username, password, email } = {}, patching = false) {
         message: 'Notandanafn krafist',
       });
     }
-  }
+  } else xss('username');
 
   if (!patching || !isEmpty(password)) {
     if (password.length < 8) {
@@ -135,16 +137,34 @@ function validate({ username, password, email } = {}, patching = false) {
         message: 'Lykilorð verður að vera amk. 8 stafir',
       });
     }
-  }
+  } else xss('password');
 
   if (!patching || !isEmpty(email)) {
-    if (typeof email !== 'string' || email.length < 1) {
+    if (typeof email !== 'string' || email.length < 1 || !validator.isEmail(email)) {
       errors.push({
         field: 'email',
         message: 'Netfang verður að vera á formi netfangs',
       });
     }
-  }
+  } else xss('email');
+
+  if (!isEmpty(name)) {
+    if (typeof name !== 'string' || name.length < 1) {
+      errors.push({
+        field: 'name',
+        message: 'Nafn verður að vera strengur',
+      });
+    }
+  } else xss('name');
+
+  if (!isEmpty(address)) {
+    if (typeof address !== 'string' || address.length < 1) {
+      errors.push({
+        field: 'address',
+        message: 'Heimilisfang verður að vera strengur',
+      });
+    }
+  } else xss('address');
 
   return errors;
 }
@@ -240,32 +260,49 @@ async function usersPatchId(id, admin) {
  * post /users/register
  */
 async function usersRegister(req, res) {
-  const { username, password, email } = req.body;
-  const errors = validate({ username, password, email }, false);
+  const { username, password, email, name, address } = req.body;
+  const errors = validate({ username, password, email, name, address }, false);
   if (errors.length > 0) {
     return res.status(400).json(errors);
   }
   // athuga hvort notandi sé nú þegar til
   const q1 = 'SELECT * FROM users WHERE username = $1';
+  const q2 = 'SELECT * FROM users WHERE email = $1';
   const usercheck = await query(q1, [username]);
+  const emailcheck = await query(q2, [email]);
 
-  // ef notandi er til þá skila error
+  // ef notendanafn eða email er til þá skila error
   if (usercheck.rows.length > 0) {
     return res.status(400).json({ error: 'notandi nú þegar til' });
   }
+  if (emailcheck.rows.length > 0) {
+    return res.status(400).json({ error: 'netfang nú þegar skráð' });
+  }
+
   // ef við komumst hingað búum við til notanda
   const hashedPassword = await bcrypt.hash(password, 11);
 
   const q = `
   INSERT INTO
   users (username, password, email)
-  VALUES ($1, $2, $3) RETURNING username, password, email`;
-  
+  VALUES ($1, $2, $3) RETURNING *`;
+
   const result = await query(q, [username, hashedPassword, email]);
-  
-  result.rows[0].password = password;
-  createNewCart(username); // Býr til körfu fyrir notanda
-  
+
+  result.rows[0].password = password; // birtum upphaflega pw í stað hashaða pw
+
+  // Býr til körfu fyrir notanda
+  await createNewCart(username);
+  // setjum inn nafn og heimilisfang ef það var gefið upp
+  if (!isEmpty(name)) {
+    await query('UPDATE cart SET name = $1 WHERE username = $2', [name, username]);
+    result.rows[0].name = name;
+  }
+  if (!isEmpty(address)) {
+    await query('UPDATE cart SET address = $1 WHERE username = $2', [address, username]);
+    result.rows[0].address = address;
+  }
+
   return res.status(201).json(result.rows[0]);
 }
 
