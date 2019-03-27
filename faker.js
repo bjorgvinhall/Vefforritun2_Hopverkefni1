@@ -72,7 +72,7 @@ async function main() {
     const file = images[i];
     cloud = await uploadCloudinary(file);
     imagesURL.push(cloud);
-    console.log("image", i + 1, "uploaded");
+    console.info('image', i + 1, 'uploaded');
   }
 
   while (products.length < productAmount) {
@@ -90,7 +90,7 @@ async function main() {
     await query(`INSERT INTO products (title, price, text, imgurl, category)
     VALUES ($1 ,$2, $3, $4, $5)`, [title, price, text, image, category]);
   }
-  console.log('\nFaker uppsett\nfjöldi slóða á myndir:', imagesURL.length,
+  console.info('\nFaker uppsett\nfjöldi slóða á myndir:', imagesURL.length,
     '\nfjöldi flokka:', categories.length,
     '\nfjöldi vara:', products.length);
 }

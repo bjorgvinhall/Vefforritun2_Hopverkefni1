@@ -109,9 +109,9 @@ app.get('/', (req, res) => {
     },
     cart: {
       cart: '/cart',
-      update: '/cart',
+      'update cart': '/cart',
       info: '/cart/line/{id}',
-      update: '/cart/line/{id}',
+      'update line': '/cart/line/{id}',
       delete: '/cart/line/{id}',
     },
     orders: {
@@ -138,8 +138,8 @@ function requireAuthentication(req, res, next) {
       }
 
       if (!user) {
-        const error = info.name === 'TokenExpiredError' ?
-          'expired token' : 'invalid token';
+        const error = info.name === 'TokenExpiredError'
+          ? 'expired token' : 'invalid token';
 
         return res.status(401).json({ error });
       }
@@ -204,14 +204,13 @@ async function userPatchIdRoute(req, res) {
 Skrá sig inn
 */
 app.post('/users/login', async (req, res) => {
-  const { email, password = '', } = req.body;
+  const { email, password = '' } = req.body;
   const user = await findByEmail(email);
   if (!user) {
     return res.status(401).json({ error: 'No such user' });
   }
 
-  const passwordIsCorrect =
-    await comparePasswords(password, user.password);
+  const passwordIsCorrect = await comparePasswords(password, user.password);
 
   if (passwordIsCorrect) {
     const payload = { id: user.id };
