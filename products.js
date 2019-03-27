@@ -3,10 +3,24 @@ const xss = require('xss');
 // const cloudinary = require("cloudinary-core");
 const { query } = require('./db');
 
+/**
+ * Athugar hvort strengur sé "tómur", þ.e.a.s. `null`, `undefined`.
+ *
+ * @param {string} s Strengur til að athuga
+ * @returns {boolean} `true` ef `s` er "tómt", annars `false`
+ */
 function isEmpty(s) {
   return s == null && !s;
 }
 
+/**
+ * Staðfestir að inntak sé gilt.
+ * isProdcut athugar hvort það sem verið er að validate'a sé vara, annars flokkur.
+ *
+ * @param {item} item Item til að staðfesta
+ * @param {boolean} [isProduct=false]
+ * @returns {array} Fylki af villum sem komu upp, tómt ef engin villa
+ */
 function validate({ title, price, text, imgurl, category } = {}, isProduct = false) {
   const errors = [];
   if (isProduct) {
@@ -69,6 +83,13 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
   return errors;
 }
 
+/**
+ * Route handler fyrir lista af products í gegnum GET.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {array} Fylki af vörum
+ */
 async function productsGet(req, res) {
   const { order = 'desc', category = '', search = '' } = req.query;
   let { offset = 0, limit = 10 } = req.query;
@@ -76,8 +97,6 @@ async function productsGet(req, res) {
   limit = Number(limit);
 
   let result;
-
-  // bool fyrir search og cat
 
   const orderString = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
@@ -148,7 +167,7 @@ async function productsGet(req, res) {
         href: `/products/?offset=${offset - limit}&limit=${limit}`,
       };
     }
-    
+
     if (result.rows.length <= limit) {
       results.links.next = {
         href: `/products/?offset=${Number(offset) + limit}&limit=${limit}`,
@@ -159,6 +178,13 @@ async function productsGet(req, res) {
   return res.json(results);
 }
 
+/**
+ * Route handler fyrir staka vöru gegnum GET.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {array} Stök vara
+ */
 async function productsGetId(req, res) {
   const { id } = req.params;
 
@@ -226,18 +252,37 @@ async function productsImagePost(req, res) {
   return res.json(result.rows[0]);
 }
 
-async function createProduct({ title, price, text, imgurl, category } = {}) {
+/**
+ * Route handler til að búa til vöru gegnum POST.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Vara sem búin var til eða villur
+ */
+async function productsPost(req, res) {
+  const {
+    title,
+    price,
+    text,
+    imgurl,
+    category,
+  } = req.body;
+
   // athuga hvort inntak sé leyfilegt
-  const validation = validate({ title, price, text, imgurl, category }, true);
+  const validation = validate(
+    {
+      title,
+      price,
+      text,
+      imgurl,
+      category,
+    },
+    true,
+  );
 
   // ef ekki leyfilegt þá skila error
   if (validation.length > 0) {
-    return {
-      success: false,
-      notFound: false,
-      validation,
-      item: null,
-    };
+    return res.status(400).json(validation);
   }
 
   // athuga hvort flokkur sé til
@@ -246,12 +291,7 @@ async function createProduct({ title, price, text, imgurl, category } = {}) {
 
   // ef flokkur ekki til þá skila error
   if (checkCategoryName.rows.length === 0) {
-    return {
-      success: false,
-      existingCategory: false,
-      validation,
-      item: null,
-    };
+    return res.status(400).json({ error: 'Flokkur er ekki til' });
   }
 
   // athuga hvort vara sé til
@@ -260,12 +300,7 @@ async function createProduct({ title, price, text, imgurl, category } = {}) {
 
   // ef vara er til þá skila error
   if (checkProductName.rows.length > 0) {
-    return {
-      success: false,
-      existingProduct: true,
-      validation,
-      item: null,
-    };
+    return res.status(400).json({ error: 'Vara er nú þegar til' });
   }
 
   const columns = [
@@ -293,27 +328,35 @@ async function createProduct({ title, price, text, imgurl, category } = {}) {
 
   const result = await query(sqlQuery, values);
 
-  return {
-    success: true,
-    notFound: false,
-    validation: [],
-    item: result.rows[0],
-  };
+  return res.status(201).json(result.rows[0]);
 }
 
-async function updateProduct(id, { title, price, text, imgurl, category }) {
-  // athuga hvort flokkur sé til
-  const q1 = 'SELECT * FROM categories WHERE category = $1';
-  const checkCategoryName = await query(q1, [category]);
+/**
+ * Route handler til að breyta vöru gegnum PATCH.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breytt vara eða villa
+ */
+async function productsPatch(req, res) {
+  const { id } = req.params;
+  const {
+    title,
+    price,
+    text,
+    imgurl,
+    category,
+  } = req.body;
 
-  // ef flokkur ekki til þá skila error
-  if (checkCategoryName.rows.length > 0) {
-    return {
-      success: false,
-      existing: false,
-      validate,
-      item: null,
-    };
+  // athuga hvort flokkur sé til
+  if (category) {
+    const q1 = 'SELECT * FROM categories WHERE category = $1';
+    const checkCategoryName = await query(q1, [category]);
+
+    // ef flokkur ekki til þá skila error
+    if (checkCategoryName.rows.length === 0) {
+      return res.status(400).json({ error: 'Flokkur er ekki til' });
+    }
   }
 
   // athuga hvort vara sé til
@@ -322,25 +365,21 @@ async function updateProduct(id, { title, price, text, imgurl, category }) {
 
   // ef vara er til þá skila error
   if (checkProductName.rows.length > 0) {
-    return {
-      success: false,
-      existing: true,
-      validate,
-      item: null,
-    };
+    return res.status(400).json({ error: 'Vara er nú þegar til' });
   }
 
   // athuga hvort inntak sé leyfilegt
-  const validation = validate({ title, price, text, imgurl, category });
+  const validation = validate({
+    title,
+    price,
+    text,
+    imgurl,
+    category,
+  });
 
   // ef ekki leyfilegt þá skila error
   if (validation.length > 0) {
-    return {
-      success: false,
-      notFound: false,
-      validation,
-      item: null,
-    };
+    return res.status(400).json(validation);
   }
 
   const filteredValues = [
@@ -371,22 +410,19 @@ async function updateProduct(id, { title, price, text, imgurl, category }) {
   const result = await query(sqlQuery, values);
 
   if (result.rowCount === 0) {
-    return {
-      success: false,
-      validation: [],
-      notFound: true,
-      item: null,
-    };
+    return res.status(404).json({ error: 'Item not found' });
   }
 
-  return {
-    success: true,
-    validation: [],
-    notFound: false,
-    item: result.rows[0],
-  };
+  return res.status(201).json(result.rows[0]);
 }
 
+/**
+ * Route handler til að eyða vöru gegnum DELETE.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Engu ef eytt, annars villu
+ */
 async function productsDelete(req, res) {
   const { id } = req.params;
 
@@ -400,6 +436,13 @@ async function productsDelete(req, res) {
   return res.status(404).json({ error: 'Item not found' });
 }
 
+/**
+ * Route handler fyrir lista af flokkum í gegnum GET.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {array} Fylki af flokkum
+ */
 async function categoriesGet(req, res) {
   let { offset = 0, limit = 10 } = req.query;
   offset = Number(offset);
@@ -434,6 +477,13 @@ async function categoriesGet(req, res) {
   return res.json(results);
 }
 
+/**
+ * Route handler fyrir stakan flokk gegnum GET.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {array} Stakur flokkur
+ */
 async function categoriesGetId(req, res) {
   const { id } = req.params;
 
@@ -453,20 +503,24 @@ async function categoriesGetId(req, res) {
   return res.json(result.rows[0]);
 }
 
-async function createCategory({ category } = {}) {
+/**
+ * Route handler til að búa til flokk gegnum POST.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Flokkur sem búin var til eða villur
+ */
+async function categoriesPost(req, res) {
+  const { category } = req.body;
+
   if (category === undefined) {
-    const validation = [];
-    validation.push({
+    const errors = [];
+    errors.push({
       field: 'category',
       message: 'Heiti á flokki verður að vera strengur sem er 1 til 128 stafir',
     });
 
-    return {
-      success: false,
-      notFound: false,
-      validation,
-      item: null,
-    };
+    return res.status(400).json(errors);
   }
 
   // athuga hvort inntak sé leyfilegt
@@ -474,12 +528,7 @@ async function createCategory({ category } = {}) {
 
   // ef ekki leyfilegt þá skila error
   if (validation.length > 0) {
-    return {
-      success: false,
-      notFound: false,
-      validation,
-      item: null,
-    };
+    return res.status(400).json(validation);
   }
 
   // athuga hvort flokkur sé til
@@ -488,12 +537,7 @@ async function createCategory({ category } = {}) {
 
   // ef flokkur er til þá skila error
   if (check.rows.length > 0) {
-    return {
-      success: false,
-      notFound: false,
-      existing: true,
-      item: null,
-    };
+    return res.status(400).json({ error: 'Flokkur er nú þegar til' });
   }
 
   const columns = [
@@ -513,22 +557,26 @@ async function createCategory({ category } = {}) {
 
   const result = await query(sqlQuery, values);
 
-  return {
-    success: true,
-    notFound: false,
-    validation: [],
-    item: result.rows[0],
-  };
+  return res.status(201).json(result.rows[0]);
 }
 
-async function updateCategory(id, { category }) {
+/**
+ * Route handler til að breyta flokki gegnum PATCH.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breyttur flokkur eða villa
+ */
+async function categoriesPatch(req, res) {
+  const { id } = req.params;
+  const { category } = req.body;
+
+  // const result = await updateCategory(id, item);
+
   const validation = validate({ category }, false);
 
   if (validation.length > 0) {
-    return {
-      success: false,
-      validation,
-    };
+    return res.status(400).json(validation);
   }
 
   // athuga hvort flokkur sé til
@@ -537,12 +585,7 @@ async function updateCategory(id, { category }) {
 
   // ef flokkur er til þá skila error
   if (check.rows.length > 0) {
-    return {
-      success: false,
-      existing: true,
-      validation,
-      item: null,
-    };
+    return res.status(400).json({ error: 'Flokkur er nú þegar til' });
   }
 
   const filteredValues = [
@@ -562,105 +605,34 @@ async function updateCategory(id, { category }) {
   RETURNING *`;
   const values = [id, ...filteredValues];
 
-  const result = await query(sqlQuery, values);
+  let result;
+  const errors = [];
+
+  try {
+    result = await query(sqlQuery, values);
+  } catch (e) {
+    errors.push({
+      field: 'error',
+      message: 'Flokkur inniheldur vörur. Vinsamlegast eyðið öllum vörum úr flokki áður en flokki er breytt',
+    });
+
+    return res.status(400).json(errors);
+  }
 
   if (result.rowCount === 0) {
-    return {
-      success: false,
-      validation,
-      notFound: true,
-      item: null,
-    };
-  }
-
-  return {
-    success: true,
-    validation,
-    notFound: false,
-    item: result.rows[0],
-  };
-}
-
-/* aðferðir sem kallað er í úr app.js */
-
-async function productsPost(req, res) {
-  const { title, price, text, imgurl, category } = req.body;
-
-  const result = await createProduct({ title, price, text, imgurl, category });
-
-  if (!result.success && result.existingProduct) {
-    return res.status(400).json({ error: 'Product already exists' });
-  }
-
-  if (!result.success && !result.existingCategory && result.validation.length === 0) {
-    return res.status(400).json({ error: 'Category does not exist' });
-  }
-
-  if (!result.success) {
-    return res.status(400).json(result.validation);
-  }
-
-  return res.status(201).json(result.item);
-}
-
-async function productsPatch(req, res) {
-  const { id } = req.params;
-  const { title, price, text, imgurl, category } = req.body;
-
-  const item = { title, price, text, imgurl, category };
-
-  const result = await updateProduct(id, item);
-
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
     return res.status(404).json({ error: 'Item not found' });
   }
 
-  return res.status(201).json(result.item);
+  return res.status(201).json(result.rows[0]);
 }
 
-async function categoriesPost(req, res) {
-  const { category } = req.body;
-
-  const result = await createCategory({ category });
-
-  if (result.existing) {
-    return res.status(400).json({ error: 'Category already exists' });
-  }
-
-  if (!result.success) {
-    return res.status(400).json(result.validation);
-  }
-
-  return res.status(201).json(result.item);
-}
-
-async function categoriesPatch(req, res) {
-  const { id } = req.params;
-  const { category } = req.body;
-
-  const item = { category };
-
-  const result = await updateCategory(id, item);
-
-  if (!result.success && result.existing) {
-    return res.status(400).json({ error: 'Category already exists' });
-  }
-
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
-    return res.status(404).json({ error: 'Item not found' });
-  }
-
-  return res.status(201).json(result.item);
-}
-
+/**
+ * Route handler til að eyða flokki gegnum DELETE.
+ *
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Engu ef eytt, annars villu
+ */
 async function categoriesDelete(req, res) {
   const { id } = req.params;
 
