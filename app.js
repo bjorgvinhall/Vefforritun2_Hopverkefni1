@@ -146,6 +146,13 @@ function requireAuthentication(req, res, next) {
   )(req, res, next);
 }
 
+function isAdmin(req, res, next) {
+  if (!req.user.admin) {
+    return res.status(401).json({ error: 'Notandi verður að vera admin' });
+  }
+  return next();
+}
+
 /**
  * Route handler til að sækja stakan notanda gegnum GET
  * @param {object} req Request hlutur
@@ -260,7 +267,7 @@ app.get('/admin', requireAuthentication, (req, res) => {
 
 
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
-app.get('/users/', requireAuthentication, catchErrors(usersGet));
+app.get('/users/', requireAuthentication, isAdmin, catchErrors(usersGet));
 app.post('/users/register', catchErrors(usersRegister));
 app.get('/users/me/', requireAuthentication, catchErrors(usersGetMeRoute));
 app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMeRoute));
