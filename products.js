@@ -69,7 +69,7 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
   return errors;
 }
 
-async function productsGet(req, res) {  
+async function productsGet(req, res) {
   const { order = 'desc', category = '', search = '' } = req.query;
   let { offset = 0, limit = 10 } = req.query;
   offset = Number(offset);
@@ -127,16 +127,20 @@ async function productsGet(req, res) {
 
   if (category || search) {
     results = {
+      limit: `${limit}`,
+      offset: `${offset}`,
       items: result.rows,
     };
   } else {
     results = {
+      limit: `${limit}`,
+      offset: `${offset}`,
+      items: result.rows,
       links: {
         self: {
           href: `/products/?offset=${offset}&limit=${limit}`,
         },
       },
-      items: result.rows,
     };
 
     if (offset > 0) {
@@ -176,8 +180,21 @@ async function productsGetId(req, res) {
 }
 
 async function productsImagePost(req, res) {
+  const upload = multer();
+
   const { imgurl } = req.body;
   const { id } = req.params;
+
+  const cloudName = 'fah13';
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+  console.log("Hæææææææææ")
+  const {
+    originalname: filename = '',
+    mimetype = '',
+    buffer = null,
+  } = req.file;
+
+  console.log(`Innihald ${filename} af gerð ${mimetype} er ${buffer.toString('utf8')}`);
 
   const q = 'SELECT * FROM products WHERE product_no = $1';
 
