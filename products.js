@@ -1,7 +1,8 @@
 const xss = require('xss');
-// const multer = require('multer');
+const fs = require('fs');
+const multer = require('multer');
 const cloudinary = require('cloudinary');
-
+const { uploadCloudinary } = require('./faker');
 const { query } = require('./db');
 
 function isEmpty(s) {
@@ -277,6 +278,97 @@ async function productsPost(req, res) {
   const result = await query(sqlQuery, values);
 
   return res.status(201).json(result.rows[0]);
+}
+
+async function meProfileRoute(req, res, next) {
+  const { file: { path } = {} } = req;
+  const { id } = req.user;
+
+  const user = await findById(id);
+
+  if (user === null) {
+    return res.status(404).json({ error: 'You not found' });
+  }
+
+  if (!path) {
+    return res.status(400).json({ error: 'Unable to read image' });
+  }
+
+  let upload = null;
+
+  try {
+    upload = await cloudinary.v2.uploader.upload(path);
+  } catch (error) {
+    if (error.http_code && error.http_code === 400) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    console.error('Unable to upload file to cloudinary:', path);
+    return next(error);
+  }
+
+  const q = 'UPDATE users SET image = $1 WHERE id = $2 RETURNING *';
+
+  const result = await query(q, [upload.secure_url, user.id]);
+
+  const row = result.rows[0];
+  delete row.password;
+
+  return res.status(201).json(row);
+}
+
+async function meProfileRouteWithMulter(req, res, next) {
+  uploads.single('profile')(req, res, (err) => {
+    if (err) {
+      if (err.message === 'Unexpected field') {
+        return res.status(400).json({ error: 'Unable to read image' });
+      }
+
+      return next(err);
+    }
+
+    return meProfileRoute(req, res, next);
+  });
+}
+
+async function productsImagePost(req, res, next) {
+  let nameOfFile = '';
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'temp/')
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + '.jpg')
+    }
+  });
+
+  const upload = multer({ storage: storage }).single('imgurl');
+
+
+  upload(req, res, function (err) {
+    if (err) {
+      // An unknown error occurred when uploading.
+    }
+    let pathname;
+    fs.readdirSync('./temp/').forEach((file) => {
+      pathname = `./temp/${file}`;
+      console.log('Ronja')
+      console.log(pathname);
+      console.log('hæ');
+      
+      const link = uploadCloudinary(pathname);
+      console.log('bæ');
+      console.log(link);
+
+
+    });
+
+    res.json({
+      success: true,
+      message: 'Image uploaded!'
+    })
+  });
 }
 
 /**
