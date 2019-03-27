@@ -148,7 +148,7 @@ async function productsGet(req, res) {
         href: `/products/?offset=${offset - limit}&limit=${limit}`,
       };
     }
-
+    
     if (result.rows.length <= limit) {
       results.links.next = {
         href: `/products/?offset=${Number(offset) + limit}&limit=${limit}`,
@@ -409,12 +409,14 @@ async function categoriesGet(req, res) {
   const result = await query(q, [offset, limit]);
 
   const results = {
+    limit: `${limit}`,
+    offset: `${offset}`,
+    items: result.rows,
     links: {
       self: {
         href: `/categories/?offset=${offset}&limit=${limit}`,
       },
     },
-    items: result.rows,
   };
 
   if (offset > 0) {
