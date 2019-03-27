@@ -1,6 +1,7 @@
 const xss = require('xss');
 const bcrypt = require('bcrypt');
 const { query } = require('./db');
+const { createNewCart } = require('./cart');
 
 /**
  * @typedef {object} User
@@ -259,9 +260,12 @@ async function usersRegister(req, res) {
   INSERT INTO
   users (username, password, email)
   VALUES ($1, $2, $3) RETURNING username, password, email`;
-
+  
   const result = await query(q, [username, hashedPassword, email]);
-  delete result.rows[0].password;
+  
+  result.rows[0].password = password;
+  createNewCart(username); // Býr til körfu fyrir notanda
+  
   return res.status(201).json(result.rows[0]);
 }
 

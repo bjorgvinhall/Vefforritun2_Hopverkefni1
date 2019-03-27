@@ -22,17 +22,17 @@ CREATE TABLE users (
 );
 
 CREATE TABLE cart (
-  id        SERIAL,
-  username  TEXT primary key references users,
+  id        SERIAL primary key,
+  username  TEXT references users,
   isOrder   BOOLEAN default false,
   name      TEXT,
   address   TEXT,
-  date      TIMESTAMP WITH TIME ZONE not null default current_timestamp
+  date      TIMESTAMP WITH TIME ZONE default null
 );
 
 CREATE TABLE cartItems (
-  id        SERIAL primary key,
-  username  TEXT references cart,
+  cart_id   SERIAL references cart,
+  username  TEXT references users,
   title     TEXT references products,
   quantity  INT not null
 );
