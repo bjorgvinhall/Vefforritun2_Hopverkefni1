@@ -316,9 +316,6 @@ async function productsImagePost(req, res) {
     const link = await uploadCloudinary(pathname);
     console.info(link);
 
-    const link = await uploadCloudinary(pathname);
-    console.info(link);
-
     const sqlQuery = `
     UPDATE products
     SET imgurl = $2 WHERE product_no = $1
@@ -330,7 +327,7 @@ async function productsImagePost(req, res) {
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
-  }
+  
   return res.status(201).json(result.rows[0]);
 });
 
@@ -464,12 +461,12 @@ async function productsImagePatch(req, res) {
     RETURNING *`;
     const values = [id, link];
 
-    result = await query(sqlQuery, values);
+    const result = await query(sqlQuery, values);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
-  }
+  
     return res.status(201).json(result.rows[0]);
   });
 
