@@ -55,7 +55,7 @@ async function main() {
     await query(`INSERT INTO products (title, price, text, imgurl, category)
     VALUES ($1 ,$2, $3, $4, $5)`, [title, price, text, image, category]);
   }
-  console.log('\nFaker uppsett\nFjöldi slóða á myndir:', imagesURL.length,
+  console.info('\nFaker uppsett\nFjöldi slóða á myndir:', imagesURL.length,
     '\nFjöldi flokka:', categories.length,
     '\nFjöldi vara:', products.length);
 }
