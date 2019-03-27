@@ -18,10 +18,31 @@ const { createNewCart } = require('./cart');
  * @property {User} user Notandi
  */
 
-async function findByUsername(username) {
-  const q = 'SELECT * FROM users WHERE username = $1';
+/**
+ * Fall sem finnur notanda eftir netfangi
+ * @param {string} email netfang notanda
+ * @returns {User} notanda
+ */
+async function findByEmail(email) {
+  const q = 'SELECT * FROM users WHERE email = $1';
 
-  const result = await query(q, [username]);
+  const result = await query(q, [email]);
+  if (result.rowCount === 1) {
+    return result.rows[0];
+  }
+
+  return null;
+}
+
+/**
+ * Fall sem finnur notanda eftir auðkenni
+ * @param {number} id auðkenni notanda
+ * @returns {User} notanda
+ */
+async function findById(id) {
+  const q = 'SELECT * FROM users WHERE id = $1';
+
+  const result = await query(q, [id]);
 
   if (result.rowCount === 1) {
     return result.rows[0];
@@ -30,11 +51,15 @@ async function findByUsername(username) {
   return null;
 }
 
-async function findById(id) {
-  const q = 'SELECT * FROM users WHERE id = $1';
+/**
+ * Fall sem finnur notanda eftir netfangi
+ * @param {string} email netfang notanda
+ * @returns {User} notanda
+ */
+async function findByUsername(username) {
+  const q = 'SELECT * FROM users WHERE username = $1';
 
-  const result = await query(q, [id]);
-
+  const result = await query(q, [username]);
   if (result.rowCount === 1) {
     return result.rows[0];
   }
@@ -131,12 +156,16 @@ function validate({ username, password, email } = {}, patching = false) {
  * @returns {array} Fylki af notendum
  * get /users/
  */
-async function users(req, res) {
+async function usersGet(req, res) {
   const q = `
   SELECT * FROM users`;
 
   const result = await query(q);
-  return res.json(result.rows);
+  const users = result.rows;
+  for (let i = 0; i < users.length; i += 1) {
+    delete users[i].password;
+  }
+  return res.json(users);
 }
 
 /**
@@ -145,7 +174,7 @@ async function users(req, res) {
  * @returns {object} User ef hann er til, annars null
  * get /users/:id
  */
-async function usersList(id) {
+async function usersGetId(id) {
   const q = `
   SELECT * FROM users
   WHERE id = $1`;
@@ -153,12 +182,6 @@ async function usersList(id) {
 
   try {
     result = await query(q, [id]);
-
-    /* Til að fá út objectinn, deleta fyrir skil, ekki að nota þetta atm
-    for (key in result) {
-      var value = result[key];
-      console.log(value);
-    } */
   } catch (e) {
     console.warn('Error fetching user', e);
   }
@@ -166,38 +189,20 @@ async function usersList(id) {
   if (!result || result.rows.length === 0) {
     return null;
   }
-
+  delete result.rows[0].password;
   return result.rows[0];
 }
 
 /**
- * Uppfærir notanda
+ * Uppfærir stjórnandastöðu notanda
  * @param {number} id Auðkenni notanda
- * @param {User} user Notanda hlutur með gildum sem á að uppfæra
  * @param {boolean} admin Gildi sem segir til um hvort notandi sé stjórnandi
  * @returns {Result} Niðurstaða þess að búa til notandann
  * patch /users/:id
  */
-async function usersPatch(id, { username, password, email }) {
-  const validation = validate({ username, password, email }, true);
-
-  if (validation.length > 0) {
-    return {
-      success: false,
-      validation,
-    };
-  }
-
-  const filteredValues = [
-    xss(username),
-    xss(password),
-    xss(email),
-  ];
-
+async function usersPatchId(id, admin) {
   const updates = [
-    username ? 'username' : null,
-    password ? 'password' : null,
-    email ? 'email' : null,
+    admin != null ? 'admin' : null,
   ]
     .filter(Boolean)
     .map((field, i) => `${field} = $${i + 2}`);
@@ -206,10 +211,10 @@ async function usersPatch(id, { username, password, email }) {
     UPDATE users
     SET ${updates} WHERE id = $1
     RETURNING id, username, password, email, admin`;
-  const values = [id, ...filteredValues];
-  
-  const result = await query(q, values);
+  const values = [id, admin];
 
+  const result = await query(q, values);
+  delete result.rows[0].password;
   if (result.rowCount === 0) {
     return {
       success: false,
@@ -225,99 +230,16 @@ async function usersPatch(id, { username, password, email }) {
     notFound: false,
     item: result.rows[0],
   };
-}
-
-function serializeUser(user, done) {
-  done(null, user.id);
-}
-
-async function deserializeUser(id, done) {
-  try {
-    const user = await findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
 }
 
 /**
- * Sækir upplýsingar um notanda sem er innskráður
- * @param {number} id Auðkenni notanda
- * @returns {object} User
- * get /users/me
+ * Býr til nýjan notanda
+ *
+ * @param {User} user Notandi til að búa til
+ * @returns {Result} Niðurstaða þess að búa til notanda
+ * post /users/register
  */
-async function usersGetMe(id) {
-  const q = `
-  SELECT * FROM users
-  WHERE id = $1`;
-  let result = null;
-
-  try {
-    result = await query(q, [id]);
-
-  } catch (e) {
-    console.warn('Error fetching user', e);
-  }
-
-  if (!result || result.rows.length === 0) {
-    return null;
-  }
-
-  return result.rows[0];
-}
-
-async function usersPatchMe(id, { username, password, email }) {
-  const validation = validate({ username, password, email }, true);
-
-  if (validation.length > 0) {
-    return {
-      success: false,
-      validation,
-    };
-  }
-
-  const filteredValues = [
-    xss(username),
-    xss(password),
-    xss(email),
-  ];
-
-  const updates = [
-    username ? 'username' : null,
-    password ? 'password' : null,
-    email ? 'email' : null,
-  ]
-    .filter(Boolean)
-    .map((field, i) => `${field} = $${i + 2}`);
-
-  const q = `
-    UPDATE users
-    SET ${updates} WHERE id = $1
-    RETURNING id, username, password, email, admin`;
-  const values = [id, ...filteredValues];
-
-  console.log('gildi: ' + values);
-
-  const result = await query(q, values);
-
-  if (result.rowCount === 0) {
-    return {
-      success: false,
-      validation: [],
-      notFound: true,
-      item: null,
-    };
-  }
-
-  return {
-    success: true,
-    validation: [],
-    notFound: false,
-    item: result.rows[0],
-  };
-}
-
-async function usersCreate(req, res) {
+async function usersRegister(req, res) {
   const { username, password, email } = req.body;
   const errors = validate({ username, password, email }, false);
   if (errors.length > 0) {
@@ -338,24 +260,100 @@ async function usersCreate(req, res) {
   INSERT INTO
   users (username, password, email)
   VALUES ($1, $2, $3) RETURNING username, password, email`;
-
+  
   const result = await query(q, [username, hashedPassword, email]);
+  
   result.rows[0].password = password;
   createNewCart(username); // Býr til körfu fyrir notanda
+  
   return res.status(201).json(result.rows[0]);
 }
 
-async function setAdmin(id, admin) {
+/**
+ * Sækir upplýsingar um notanda sem er innskráður
+ * @param {number} id Auðkenni notanda
+ * @returns {object} User
+ * get /users/me
+ */
+async function usersGetMe(id) {
   const q = `
-UPDATE users
-SET admin = $1
-WHERE id = $2`;
+  SELECT * FROM users
+  WHERE id = $1`;
+  let result = null;
 
-  const result = await query(q, [admin, id]);
+  try {
+    result = await query(q, [id]);
+  } catch (e) {
+    console.warn('Error fetching user', e);
+  }
 
-  return result;
+  if (!result || result.rows.length === 0) {
+    return null;
+  }
+  delete result.rows[0].password;
+  return result.rows[0];
 }
 
+/**
+ * Uppfærir upplýsingar um innskráðan notanda
+ * @param {number} id Auðkenni notanda
+ * @param {User} user Notanda hlutur með gildum sem á að uppfæra
+ * @returns {Result} Niðurstaða þess að breyta notanda
+ * patch /users/me
+ */
+async function usersPatchMe(id, { password, email }) {
+  const validation = validate({ password, email }, true);
+
+  if (validation.length > 0) {
+    return {
+      success: false,
+      validation,
+    };
+  }
+
+  const filteredValues = [
+    xss(password),
+    xss(email),
+  ];
+
+  const updates = [
+    password ? 'password' : null,
+    email ? 'email' : null,
+  ]
+    .filter(Boolean)
+    .map((field, i) => `${field} = $${i + 2}`);
+  const q = `
+    UPDATE users
+    SET ${updates} WHERE id = $1
+    RETURNING id, username, password, email, admin`;
+  const values = [id, ...filteredValues];
+
+  const result = await query(q, values);
+  delete result.rows[0].password;
+
+  if (result.rowCount === 0) {
+    return {
+      success: false,
+      validation: [],
+      notFound: true,
+      item: null,
+    };
+  }
+
+  return {
+    success: true,
+    validation: [],
+    notFound: false,
+    item: result.rows[0],
+  };
+}
+
+/**
+ * Ber saman innslegið lykilorð við lykilorðið aðgangs
+ * @param {string} hash lykilorð aðgangs
+ * @param {string} password innslegið lykilorð
+ * @returns {Result} Niðurstaða samanborningar
+ */
 async function comparePasswords(hash, password) {
   const result = await bcrypt.compare(hash, password);
 
@@ -363,15 +361,14 @@ async function comparePasswords(hash, password) {
 }
 
 module.exports = {
-  findByUsername, // til að login virki
+  findByEmail, // til að login virki
   findById,
   userStrategy,
-  usersList,
-  usersPatch,
+  usersGet,
+  usersGetId,
+  usersPatchId,
+  usersRegister,
   usersGetMe,
   usersPatchMe,
-  usersCreate,
-  users,
-  setAdmin,
   comparePasswords,
 };

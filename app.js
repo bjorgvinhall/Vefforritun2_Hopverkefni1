@@ -2,19 +2,18 @@ require('dotenv').config();
 
 const express = require('express');
 const passport = require('passport');
-const multer = require('multer');
 const { Strategy, ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
-const { findById, findByUsername, comparePasswords } = require('./users');
+const { findById, findByEmail, comparePasswords } = require('./users');
 const { catchErrors } = require('./utils');
 
 const { // EKKI tilbúið, gera þessar aðferðir inní users.js
-  users,
-  usersList,
-  usersPatch,
-  usersPatchMe,
-  usersGetMe,
-  usersCreate, // gleymdist
+  usersGet,
+  usersGetId,
+  usersPatchId,
+  usersRegister,
+  usersGetMe, // GERA MMJ
+  usersPatchMe, // GERA MMJ
 } = require('./users');
 
 const { // tilbúið, allar products og categories aðferðir
@@ -78,77 +77,16 @@ passport.use(new Strategy(jwtOptions, strat));
 app.use(passport.initialize());
 app.use(passport.session());
 
-function requireAuthentication(req, res, next) {
-  return passport.authenticate(
-    'jwt',
-    { session: false },
-    (err, user, info) => {
-      if (err) {
-        return next(err);
-      }
-
-      if (!user) {
-        const error = info.name === 'TokenExpiredError' ?
-          'expired token' : 'invalid token';
-
-        return res.status(401).json({ error });
-      }
-
-      req.user = user;
-      return next();
-    },
-  )(req, res, next);
-}
-
-/**
- * Route handler til að sækja stakan notanda gegnum GET
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Notandi eða villa
- */
-async function userRoute(req, res) {
-  const { id } = req.params;
-  const user = await usersList(id);
-  if (user) {
-    return res.json(user);
-  }
-  return res.status(404).json({ error: 'Notandi finnst ekki' });
-}
-
-/**
- * Route handler til að breyta notanda gegnum PATCH
- * @param {object} req Request hlutur
- * @param {object} res Response hlutur
- * @returns {object} Breyttur notandi, annars villa
- */
-async function userPatchRoute(req, res) {
-  const { id, admin } = req.params;
-  const { username, password, email } = req.body;
-
-  const user = { username, password, email };
-
-  const result = await usersPatch(id, user, admin);
-
-  if (!result.success && result.validation.length > 0) {
-    return res.status(400).json(result.validation);
-  }
-
-  if (!result.success && result.notFound) {
-    return res.status(404).json({ error: 'Notandi fannst ekki' });
-  }
-  return res.status(201).json(result.item);
-}
-
 app.get('/', (req, res) => {
   res.json({
     users: {
       users: '/users',
       user: '/users/{id}',
-      update: '/users/{id}',
+      updateAdmin: '/users/{id}',
       register: '/users/register',
       login: '/users/login',
       me: '/users/me',
-      'Update me': '/users/me',
+      updateMe: '/users/me',
     },
     products: {
       products: '/products',
@@ -180,11 +118,77 @@ app.get('/', (req, res) => {
   });
 });
 
+/**
+ * Fall sem krefst þess að notandi sé innskráður
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * @param {object} next næsti hlutur
+ */
+function requireAuthentication(req, res, next) {
+  return passport.authenticate(
+    'jwt',
+    { session: false },
+    (err, user, info) => {
+      if (err) {
+        return next(err);
+      }
+
+      if (!user) {
+        const error = info.name === 'TokenExpiredError' ?
+          'expired token' : 'invalid token';
+
+        return res.status(401).json({ error });
+      }
+
+      req.user = user;
+      return next();
+    },
+  )(req, res, next);
+}
+
+/**
+ * Route handler til að sækja stakan notanda gegnum GET
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Notandi eða villa
+ * get /users/:id
+ */
+async function userGetIdRoute(req, res) {
+  const { id } = req.params;
+  const user = await usersGetId(id);
+  if (user) {
+    return res.json(user);
+  }
+  return res.status(404).json({ error: 'Notandi finnst ekki' });
+}
+
+/**
+ * Route hander til að breyta stjórnandastöðu notanda gegnum PATCH
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breytt stjórnandastaða notanda, annars villa
+ * /patch /users/:id
+ */
+async function userPatchIdRoute(req, res) {
+  const { id } = req.params;
+  const admin = req.body;
+  const result = await usersPatchId(id, admin.admin);
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.item);
+}
+
+/*
+Skrá sig inn
+*/
 app.post('/users/login', async (req, res) => {
-  const { username, password = '' } = req.body;
-
-  const user = await findByUsername(username);
-
+  const { email, password = '', } = req.body;
+  const user = await findByEmail(email);
   if (!user) {
     return res.status(401).json({ error: 'No such user' });
   }
@@ -202,20 +206,66 @@ app.post('/users/login', async (req, res) => {
   return res.status(401).json({ error: 'Invalid password' });
 });
 
+/**
+ * Route handler til að sækja innskráðan notanda gegnum GET
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Innskráður otandi eða villa
+ */
+async function usersGetMeRoute(req, res) {
+  const userLoggedIn = req.user;
+  const userId = userLoggedIn.id;
+  const result = await usersGetMe(userId);
+  if (req.user) {
+    return res.json(result);
+  }
+  return res.status(404).json({ error: 'Notandi finnst ekki' });
+}
+
+/**
+ * Route hander til að breyta upplýsingum innskráðs
+ * notanda í gegnum PATCH
+ * @param {object} req Request hlutur
+ * @param {object} res Response hlutur
+ * @returns {object} Breyttur notandi, annars villa
+ * /patch /users/admin/:id
+ */
+async function usersPatchMeRoute(req, res) {
+  const userLoggedIn = req.user;
+  const userId = userLoggedIn.id;
+
+  const { password, email } = req.body;
+  const user = { password, email };
+
+  // const { id, username, admin } = req.params;
+
+  const result = await usersPatchMe(userId, user);
+
+  if (!result.success && result.validation.length > 0) {
+    return res.status(400).json(result.validation);
+  }
+
+  if (!result.success && result.notFound) {
+    return res.status(404).json({ error: 'Notandi fannst ekki' });
+  }
+  return res.status(201).json(result.item);
+}
+
+/*
+Til að sjá leyndarmál, sem þú átt aðeins að sjá ef þú ert admin
+*/
 app.get('/admin', requireAuthentication, (req, res) => {
   res.json({ data: 'top secret' });
 });
 
 
 // hafa öll route á '/:id' neðst, annars er alltaf farið inn í þau
-app.get('/users/', requireAuthentication, catchErrors(users));
-app.post('/users/register', catchErrors(usersCreate));
-app.get('/users/me/', requireAuthentication, catchErrors(usersGetMe));
-app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMe));
-app.get('/users/:id', requireAuthentication, catchErrors(userRoute));
-app.patch('/users/:id', requireAuthentication, catchErrors(userPatchRoute));
-// login er aðeins ofar í þessari skrá, meira vesen að hafa í users.js
-// app.post('/users/login', catchErrors(usersLogin));
+app.get('/users/', requireAuthentication, catchErrors(usersGet));
+app.post('/users/register', catchErrors(usersRegister));
+app.get('/users/me/', requireAuthentication, catchErrors(usersGetMeRoute));
+app.patch('/users/me/', requireAuthentication, catchErrors(usersPatchMeRoute));
+app.get('/users/:id', requireAuthentication, catchErrors(userGetIdRoute));
+app.patch('/users/:id', requireAuthentication, catchErrors(userPatchIdRoute));
 
 app.get('/products/', catchErrors(productsGet));
 app.post('/products/', requireAuthentication, catchErrors(productsPost));

@@ -1,4 +1,6 @@
 const xss = require('xss');
+const multer = require('multer');
+const cloudinary = require("cloudinary-core");
 const { query } = require('./db');
 
 function isEmpty(s) {
@@ -68,7 +70,7 @@ function validate({ title, price, text, imgurl, category } = {}, isProduct = fal
 }
 
 async function productsGet(req, res) {  
-  const { order = 'asc', category = '', search = '' } = req.query;
+  const { order = 'desc', category = '', search = '' } = req.query;
   let { offset = 0, limit = 10 } = req.query;
   offset = Number(offset);
   limit = Number(limit);
@@ -77,17 +79,40 @@ async function productsGet(req, res) {
 
   // bool fyrir search og cat
 
-  const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+  const orderString = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  if (category) {
+  if (search && category) {
+    const q = `
+    SELECT * FROM products
+    WHERE category = $1
+    AND
+      to_tsvector('english', title) @@ plainto_tsquery('english', $2)
+      OR
+      to_tsvector('english', text) @@ plainto_tsquery('english', $2)
+    ORDER BY date ${orderString}
+    OFFSET $3 LIMIT $4`;
+
+    result = await query(q, [category, search, offset, limit]);
+  } else if (category) {
     const q = `
     SELECT *
     FROM products
     WHERE category = $1
-    ORDER BY date
+    ORDER BY date ${orderString}
     OFFSET $2 LIMIT $3`;
 
     result = await query(q, [category, offset, limit]);
+  } else if (search) {
+    const q = `
+    SELECT * FROM products
+    WHERE
+      to_tsvector('english', title) @@ plainto_tsquery('english', $1)
+      OR
+      to_tsvector('english', text) @@ plainto_tsquery('english', $1)
+    ORDER BY date ${orderString}
+    OFFSET $2 LIMIT $3`;
+
+    result = await query(q, [search, offset, limit]);
   } else {
     const q = `
     SELECT *
@@ -98,25 +123,33 @@ async function productsGet(req, res) {
     result = await query(q, [offset, limit]);
   }
 
-  const results = {
-    links: {
-      self: {
-        href: `/products/?offset=${offset}&limit=${limit}`,
+  let results;
+
+  if (category || search) {
+    results = {
+      items: result.rows,
+    };
+  } else {
+    results = {
+      links: {
+        self: {
+          href: `/products/?offset=${offset}&limit=${limit}`,
+        },
       },
-    },
-    items: result.rows,
-  };
-
-  if (offset > 0) {
-    results.links.prev = {
-      href: `/products/?offset=${offset - limit}&limit=${limit}`,
+      items: result.rows,
     };
-  }
 
-  if (result.rows.length <= limit) {
-    results.links.next = {
-      href: `/products/?offset=${Number(offset) + limit}&limit=${limit}`,
-    };
+    if (offset > 0) {
+      results.links.prev = {
+        href: `/products/?offset=${offset - limit}&limit=${limit}`,
+      };
+    }
+
+    if (result.rows.length <= limit) {
+      results.links.next = {
+        href: `/products/?offset=${Number(offset) + limit}&limit=${limit}`,
+      };
+    }
   }
 
   return res.json(results);
@@ -138,6 +171,40 @@ async function productsGetId(req, res) {
   if (!result || result.rows.length === 0) {
     return res.status(404).json({ error: 'Item not found' });
   }
+
+  return res.json(result.rows[0]);
+}
+
+async function productsImagePost(req, res) {
+  const { imgurl } = req.body;
+  const { id } = req.params;
+
+  const q = 'SELECT * FROM products WHERE product_no = $1';
+
+  // vantar validate
+
+  const updates = [
+    'imgurl',
+  ].filter(Boolean);
+
+  const filteredValues = [
+    xss(imgurl),
+  ].filter(Boolean);
+
+  const sqlQuery = `
+  UPDATE products
+  SET ${updates} WHERE product_no = $1
+  RETURNING *`;
+  const values = [id, ...filteredValues];
+
+  let result = null;
+
+  try {
+    result = await query(sqlQuery, values);
+  } catch (e) {
+    console.warn('Error fetching todo', e);
+  } 
+
 
   return res.json(result.rows[0]);
 }
@@ -497,43 +564,6 @@ async function updateCategory(id, { category }) {
 
 /* aðferðir sem kallað er í úr app.js */
 
-async function getProductss(order = 'asc', category = undefined, search = undefined) {
-  let result;
-  let q;
-
-  const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-
-  if (category !== undefined) {
-    if (search === undefined) {
-      q = `
-      SELECT *
-      FROM products
-      WHERE category = $1
-      ORDER BY date`;
-
-      result = await query(q, [category]);
-    } else {
-      q = `
-      SELECT *
-      FROM products
-      WHERE category = $1
-      AND title = $2 
-      ORDER BY date`;
-
-      result = await query(q, [category, search]);
-    }
-  } else {
-    q = `
-    SELECT *
-    FROM products
-    ORDER BY date ${orderString}`;
-
-    result = await query(q);
-  }
-
-  return result.rows;
-}
-
 async function productsPost(req, res) {
   const { title, price, text, imgurl, category } = req.body;
 
@@ -642,6 +672,7 @@ module.exports = {
   productsGet,
   productsGetId,
   productsPost,
+  productsImagePost,
   productsPatch,
   productsDelete,
   categoriesGet,
