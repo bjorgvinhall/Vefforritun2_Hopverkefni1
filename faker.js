@@ -37,7 +37,7 @@ async function main() {
     const price = parseInt(faker.commerce.price(), 10);
     // þægilegra að hafa stuttan texta á meðan við erum að vinna verkefnið
     // Breyta: text = faker.lorem.paragraphs(); áður en við skilum
-    const text = 'texti, muna að breyta faker.js';
+    const text = faker.lorem.paragraphs();
     const image = images[Math.floor(Math.random() * 20)];
     const category = categories[Math.floor(Math.random() * 12)];
 
