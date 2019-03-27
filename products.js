@@ -331,9 +331,7 @@ async function meProfileRouteWithMulter(req, res, next) {
   });
 }
 
-async function productsImagePost(req, res, next) {
-  let nameOfFile = '';
-
+async function productsImagePost(req, res) {
   const storage = multer.diskStorage({
     destination(req, file, cb) {
       cb(null, 'temp/');
@@ -345,22 +343,17 @@ async function productsImagePost(req, res, next) {
 
   const upload = multer({ storage }).single('imgurl');
 
-
-  upload(req, res, async (err) => { // async verður að vera hér
+  upload(req, res, async (err) => {
     if (err) {
-      // An unknown error occurred when uploading.
+      res.json({ error: 'An unknown error occurred when uploading' });
     }
     let pathname;
     fs.readdirSync('./temp/').forEach((file) => {
       pathname = `./temp/${file}`;
-      console.log('Ronja')
-      console.log(pathname);
-      console.log('hæ');
-
-      const link = uploadCloudinary(pathname);
-      console.log('bæ');
-      console.log(link);
     });
+
+    const link = await uploadCloudinary(pathname);
+    console.info(link);
 
     res.json({
       success: true,
