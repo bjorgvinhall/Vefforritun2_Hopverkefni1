@@ -2,6 +2,7 @@
 const xss = require('xss');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
 const { query } = require('./db');
 const { createNewCart } = require('./cart');
 
@@ -253,6 +254,21 @@ async function usersPatchId(id, admin) {
 }
 
 /**
+ * Fall sem inniheldur 500 verstu lykilorð í heimi
+ * @param {string} password lykilorð
+ */
+function worstPasswords(password) {
+  const byLine = fs.readFileSync('worstpw.txt').toString().split('\n');
+  const worst = byLine.map(x => x.trim());
+  for (let i = 0; i < worst.length; i += 1) {
+    if (password === worst[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Býr til nýjan notanda
  *
  * @param {User} user Notandi til að búa til
@@ -277,6 +293,11 @@ async function usersRegister(req, res) {
   }
   if (emailcheck.rows.length > 0) {
     return res.status(400).json({ error: 'netfang nú þegar skráð' });
+  }
+
+  // athuga hvort að lykilorð sé of veikt
+  if (worstPasswords(password)) {
+    return res.status(400).json({ error: 'Lykilorð er of veikt' });
   }
 
   // ef við komumst hingað búum við til notanda

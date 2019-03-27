@@ -11,38 +11,6 @@ function catchErrors(fn) {
 }
 
 /**
-* Passar upp á að það sé innskráður notandi í request. Skilar næsta middleware
-* ef svo er, annars redirect á /login
-*
-* @param {object} req Request hlutur
-* @param {object} res Response hlutur
-* @param {funcion} next Næsta middleware
-*/
-function ensureLoggedIn(req, res, next) {
-  console.log('ensureLoggedIn', req.user);
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: 'invalid token' });
-}
-
-/**
-* Passar upp á að innskráður notandi sé admin. Skilar næsta middleware ef svo
-* er, annars redirect á /login
-*
-* @param {object} req Request hlutur
-* @param {object} res Response hlutur
-* @param {funcion} next Næsta middleware
-*/
-function ensureAdmin(req, res, next) {
-  console.log("ensureAdmin", req.user);
-  if (req.isAuthenticated() && req.user && req.user.admin) {
-    return next();
-  }
-  return res.status(401).json({ error: 'invalid token' });
-}
-
-/**
 * Hjálparfall sem XSS hreinsar reit í formi eftir heiti.
 *
 * @param {string} fieldName Heiti á reit
@@ -76,8 +44,6 @@ function isEmpty(s) {
 
 module.exports = {
   catchErrors,
-  ensureLoggedIn,
-  ensureAdmin,
   sanitizeXss,
   isEmpty,
 };
