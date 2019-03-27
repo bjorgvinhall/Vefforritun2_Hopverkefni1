@@ -254,8 +254,9 @@ async function usersPatchId(id, admin) {
 }
 
 /**
- * Fall sem inniheldur 500 verstu lykilorð í heimi
+ * Fall sem ber saman lykilorð við 500 verstu lykilorð heims
  * @param {string} password lykilorð
+ * @returns {Boolean} true ef lykilorðið tilheyrir þeim, annars false
  */
 function worstPasswords(password) {
   const byLine = fs.readFileSync('worstpw.txt').toString().split('\n');
@@ -271,7 +272,8 @@ function worstPasswords(password) {
 /**
  * Býr til nýjan notanda
  *
- * @param {User} user Notandi til að búa til
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
  * @returns {Result} Niðurstaða þess að búa til notanda
  * post /users/register
  */

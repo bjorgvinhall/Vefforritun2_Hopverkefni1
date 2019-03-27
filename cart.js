@@ -7,7 +7,10 @@ const { sanitizeXss } = require('./utils');
 
 const { isEmpty } = require('./utils');
 
-// Hjálparfall til að búa til nýja körfu ef notandi á ekki þegar körfu
+/**
+ * Hjálparfall til að búa til nýja körfu, ef notandi á ekki körfu
+ * @param {string} username notandanafn notanda
+ */
 async function createNewCart(username) {
   const user = await query('SELECT * FROM users WHERE username = $1', [username]);
   if (user.rows.length !== 1) {
@@ -29,7 +32,13 @@ async function createNewCart(username) {
   }
 }
 
-// get /cart
+/**
+ * Fall sem skilar körfu fyrir notanda
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * @returns {array} Fylki af hlutum í körfu
+ * get /cart
+ */
 async function cartsList(req, res) {
   const { username } = req.user;
 
@@ -87,7 +96,13 @@ async function cartsList(req, res) {
   return res.json(results);
 }
 
-// post /cart
+/**
+ * Fall sem bætir vöru við í körfu notanda
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * @returns {Result} Niðurstaða þess að búa til notanda
+ * post /cart
+ */
 async function cartAdd(req, res) {
   const errors = [];
   const { isOrder = false, title, quantity } = req.body;
@@ -126,7 +141,12 @@ async function cartAdd(req, res) {
   return res.status(201).json(result.rows[0]);
 }
 
-// get /cart/line/:id
+/**
+ * Fall sem skilar línu í körfu með fjölda og upplýsingum um vöru
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * get /cart/line/:id
+ */
 async function cartList(req, res) {
   const { id } = req.params;
   const { username } = req.user;
@@ -141,7 +161,12 @@ async function cartList(req, res) {
   return res.json(info.rows[0]);
 }
 
-// delete /cart/line/:id
+/**
+ * Fall sem eyðir línu úr körfu sem notandi á
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * delete /cart/line/:id
+ */
 async function cartDelete(req, res) {
   const { id } = req.params;
   const { username } = req.user;
@@ -156,7 +181,12 @@ async function cartDelete(req, res) {
   return res.status(204).json(item);
 }
 
-// patch /cart/line/:id
+/**
+ * Fall sem uppfærir fjölda í línu, í körfu sem notandi á
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * patch /cart/line/:id
+ */
 async function cartPatch(req, res) {
   const { id } = req.params;
   const { username } = req.user;
@@ -176,7 +206,14 @@ async function cartPatch(req, res) {
   return res.status(400).json({ quantity: 'quantity verður að vera heiltala stærri en 0' });
 }
 
-//  GET /orders
+/**
+ * Fall sem skilar síðu af pöntunum,
+ * Ef notandi er ekki stjórnandi: pantanir þess notanda
+ * Ef notandi er stjórnandi: allar pantanir
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * get /orders
+ */
 async function ordersList(req, res) {
   const { admin } = req.user;
   let { offset = 0, limit = 10 } = req.query;
@@ -239,7 +276,12 @@ async function ordersList(req, res) {
   return res.json(results);
 }
 
-// POST /orders
+/**
+ * Fall sem býr til pöntun úr körfu með viðeigandi gildum
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * post /orders
+ */
 async function ordersPost(req, res) {
   const { username } = req.user;
   const { name, address } = req.body;
@@ -292,7 +334,12 @@ async function ordersPost(req, res) {
   return res.json(result.rows[0]);
 }
 
-// GET /orders/:id
+/**
+ * Fall sem skilar tiltekinni pöntun ef notandi á pöntun/er stjórnandi
+ * @param {Request} req hlutur
+ * @param {Response} res hlutur
+ * get /orders/:id
+ */
 async function orderList(req, res) {
   const { username, admin } = req.user;
   const { id } = req.params;
