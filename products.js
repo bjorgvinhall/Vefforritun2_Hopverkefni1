@@ -1,7 +1,52 @@
 const xss = require('xss');
 // const multer = require('multer');
-// const cloudinary = require("cloudinary-core");
+const cloudinary = require('cloudinary');
+
 const { query } = require('./db');
+
+const {
+  CLOUDINARY_CLOUD,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+} = process.env;
+
+if (!CLOUDINARY_CLOUD || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+  console.warn('Missing cloudinary config, uploading images will not work');
+}
+
+cloudinary.config({
+  cloud_name: CLOUDINARY_CLOUD,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
+});
+
+async function uploadCloudinary(req, res, path) {
+  if (!path) {
+    return res.status(400).json({ error: 'Unable to read image' });
+  }
+
+  let upload = null;
+
+  try {
+    upload = await cloudinary.v2.uploader.upload(path);
+  } catch (error) {
+    if (error.http_code && error.http_code === 400) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    console.error('Unable to upload file to cloudinary:', path);
+    return error;
+  }
+
+  const q = 'UPDATE products SET image = $1 WHERE product_no = $2 RETURNING *';
+
+  const result = await query(q, [upload.secure_url, user.id]);
+
+  const row = result.rows[0];
+  delete row.password;
+
+  return res.status(201).json(row);
+}
 
 function isEmpty(s) {
   return s == null && !s;
