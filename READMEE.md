@@ -60,6 +60,6 @@ Til að skrá sig inn sem admin þarf að `POST` á `users/login` og stimpla inn
 
 ## Bæta við mynd og breyta mynd
 
-Til þess að bæta við myndum á vöru þarf að gera `POST` á `/products/{id}/image`, þar sem `{id}` er númer þeirrar vöru sem bæta á mynd við. Setja þarf inn slóð á mynd í gegnum `form-data`.
+Til þess að bæta við myndum á vöru þarf að gera `POST` á `/products/{id}/image`, þar sem `{id}` er númer þeirrar vöru sem bæta á mynd við. Setja þarf inn slóð á mynd í gegnum `form-data`, en notast þarf við `key: imgurl`.
 
 Ef að breyta á mynd á vöru sem nú þegar hefur mynd, er ferlið svipað og fyrir ofan nema það þarf að gera `PATCH` á `/products/{id}/image`.
