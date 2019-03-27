@@ -1,6 +1,6 @@
 const xss = require('xss');
-const multer = require('multer');
-const cloudinary = require("cloudinary-core");
+// const multer = require('multer');
+// const cloudinary = require("cloudinary-core");
 const { query } = require('./db');
 
 function isEmpty(s) {

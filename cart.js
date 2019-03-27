@@ -20,7 +20,13 @@ async function createNewCart(username) {
     console.log('Notandi á þegar körfu');
     return;
   }
-  await query('INSERT INTO cart (username) VALUES ($1)', [username]);
+  const userOrder = await query('SELECT * FROM cart WHERE username = $1 AND isOrder = true', [username]);
+  if (userOrder.rows.length !== 0) {
+    const { name = '', address = '' } = userOrder.rows[0];
+    await query('INSERT INTO cart (username, name, address) VALUES ($1, $2, $3)', [username, name, address]);  
+  } else {
+    await query('INSERT INTO cart (username) VALUES ($1)', [username]);
+  }
 }
 
 // get /cart
@@ -117,7 +123,7 @@ async function cartAdd(req, res) {
   q = `INSERT INTO cartItems (cart_id, username, title, quantity)
   VALUES ($1 ,$2, $3, $4) RETURNING title, quantity`;
   const result = await query(q, [id, username, title, quantity]);
-  return res.json(result.rows[0]);
+  return res.status(201).json(result.rows[0]);
 }
 
 // get /cart/line/:id
@@ -186,29 +192,24 @@ async function ordersList(req, res) {
     const findOrders = await query(q, [offset, limit]);
     for (let i = 0; i < findOrders.rows.length; i++) {
       const item = findOrders.rows[i];
-      console.log(i, ":", item);
       const orderItems = await query('SELECT * FROM cartItems WHERE cart_id = $1', [item.id]);
-      console.log("orderItems.rows i = ", i , ":", orderItems.rows);
       item['items in cart'] = orderItems.rows;
       result[`order ${i + 1}`] = item;
     }
   } else {
     // lista allar pantanir notanda
-    console.log("ekki admin")
     const { username } = req.user;
     q = 'SELECT * FROM cart WHERE isOrder = true AND username = $1 ORDER BY date DESC OFFSET $2 LIMIT $3';
     const findOrders = await query(q, [username, offset, limit]);
     for (let i = 0; i < findOrders.rows.length; i++) {
       const item = findOrders.rows[i];
-      console.log(i, ":", item);
       const orderItems = await query('SELECT * FROM cartItems WHERE cart_id = $1', [item.id]);
-      console.log("orderItems.rows i = ", i , ":", orderItems.rows);
       item['items in cart'] = orderItems.rows;
       result[`order ${i + 1}`] = item;
     }
   }
 
-  if (result.length === 0) {
+  if (result.length === 0 || typeof result['order 1'] === 'undefined') {
     return res.json({ orders: 'Engin pöntun til' });
   }
 
@@ -242,9 +243,12 @@ async function ordersList(req, res) {
 async function ordersPost(req, res) {
   const { username } = req.user;
   const { name, address } = req.body;
+  const cart = await query('SELECT * FROM cart WHERE username = $1 AND isorder = false', [username]);
+  const { id } = cart.rows[0];
+  const cartItmes = await query('SELECT * FROM cartItems WHERE cart_id = $1', [id]);
+  if (cartItmes.rows.length === 0) return res.status(400).json({ error: 'Karfa er tóm' });
   const errors = [];
   // setjum name og address inn ef til staðar, annars error
-  const cart = await query('SELECT * FROM cart WHERE username = $1', [username]);
   if (isEmpty(cart.rows[0].name)) { // ef ekkert nafn í gagnagrunni
     if (isEmpty(name)) {
       errors.push({
@@ -280,7 +284,7 @@ async function ordersPost(req, res) {
   if (errors.length > 0) {
     return res.status(400).json(errors);
   }
-  // if (karfa tóm) error
+
   // breyta körfu í order og búa til nýja körfu
   await query('UPDATE cart SET isOrder = true WHERE id = $1', [cart.rows[0].id]);
   const result = await query('UPDATE cart SET date = current_timestamp WHERE id = $1 RETURNING *', [cart.rows[0].id]);
@@ -290,13 +294,24 @@ async function ordersPost(req, res) {
 
 // GET /orders/:id
 async function orderList(req, res) {
+  const { username, admin } = req.user;
   const { id } = req.params;
-  const result = await query('SELECT * FROM cartItems WHERE cart_id = $1', [id]);
-  const item = result.rows[id - 1];
-  if (isEmpty(item)) {
-    return res.status(404).json({ error: 'Item not found' });
+  let result = {};
+  // sækjum körfu með :id
+  const findOrders = await query('SELECT * FROM cart WHERE isOrder = true AND id = $1', [id]);
+  const cart = findOrders.rows[0];
+  if (!admin && username !== cart.username) {
+    return res.status(401).json({ orders: 'Þú hefur ekki aðgang að þessari körfu' });
   }
-  return res.json(result.rows[0]);
+  const item = findOrders.rows[0];
+  if (typeof item === 'undefined') {
+    return res.status(404).json({ orders: 'Pöntun ekki til' });
+  }
+  const orderItems = await query('SELECT * FROM cartItems WHERE cart_id = $1', [item.id]);
+  item['items in cart'] = orderItems.rows;
+  result = item;
+
+  return res.json(result);
 }
 
 module.exports = {
