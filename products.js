@@ -205,53 +205,6 @@ async function productsGetId(req, res) {
   return res.json(result.rows[0]);
 }
 
-async function productsImagePost(req, res) {
-  const upload = multer();
-
-  const { imgurl } = req.body;
-  const { id } = req.params;
-
-  const cloudName = 'fah13';
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-  console.log("Hæææææææææ")
-  const {
-    originalname: filename = '',
-    mimetype = '',
-    buffer = null,
-  } = req.file;
-
-  console.log(`Innihald ${filename} af gerð ${mimetype} er ${buffer.toString('utf8')}`);
-
-  const q = 'SELECT * FROM products WHERE product_no = $1';
-
-  // vantar validate
-
-  const updates = [
-    'imgurl',
-  ].filter(Boolean);
-
-  const filteredValues = [
-    xss(imgurl),
-  ].filter(Boolean);
-
-  const sqlQuery = `
-  UPDATE products
-  SET ${updates} WHERE product_no = $1
-  RETURNING *`;
-  const values = [id, ...filteredValues];
-
-  let result = null;
-
-  try {
-    result = await query(sqlQuery, values);
-  } catch (e) {
-    console.warn('Error fetching todo', e);
-  } 
-
-
-  return res.json(result.rows[0]);
-}
-
 /**
  * Route handler til að búa til vöru gegnum POST.
  *
