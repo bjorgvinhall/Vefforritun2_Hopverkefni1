@@ -32,13 +32,21 @@ async function createNewCart(username) {
 // get /cart
 async function cartsList(req, res) {
   const { username } = req.user;
+
+  let { offset = 0, limit = 10 } = req.query;
+  offset = Number(offset);
+  limit = Number(limit);
+
   // Finnum ID fyrir rétta körfu og sækjum hana
   const findID = await query('SELECT * FROM cart WHERE username = $1 AND isOrder = false', [username]);
   const { id } = findID.rows[0];
-  const result = await query('SELECT * FROM cartItems WHERE cart_id = $1', [id]);
+  const q = 'SELECT * FROM cartItems WHERE cart_id = $1 OFFSET $2 LIMIT $3';
+  const result = await query(q, [id, offset, limit]);
+
   let rowtotal = 0;
   let total = 0;
   let productInfo;
+
   for (let i=0; i<result.rows.length; i++){ // eslint-disable-line
     productInfo = await query('SELECT * FROM products WHERE title = $1', [result.rows[i].title]);
     rowtotal = result.rows[i].quantity * productInfo.rows[0].price;
@@ -51,7 +59,32 @@ async function cartsList(req, res) {
   const element = {};
   element['cart total'] = total;
   result.rows[result.rows.length] = element;
-  return res.json(result.rows);
+  // return res.json(result.rows);
+
+  const results = {
+    limit: `${limit}`,
+    offset: `${offset}`,
+    items: result.rows,
+    links: {
+      self: {
+        href: `/cart/?offset=${offset}&limit=${limit}`,
+      },
+    },
+  };
+
+  if (offset > 0) {
+    results.links.prev = {
+      href: `/cart/?offset=${offset - limit}&limit=${limit}`,
+    };
+  }
+
+  if (result.rows.length - 1 <= limit) {
+    results.links.next = {
+      href: `/cart/?offset=${Number(offset) + limit}&limit=${limit}`,
+    };
+  }
+
+  return res.json(results);
 }
 
 // post /cart
@@ -146,10 +179,17 @@ async function cartPatch(req, res) {
 //  GET /orders
 async function ordersList(req, res) {
   const { admin } = req.user;
-  const result = {};
+  let { offset = 0, limit = 10 } = req.query;
+  offset = Number(offset);
+  limit = Number(limit);
+
+  let result = {};
+  let q = '';
   if (admin) {
     // lista allar pantanir
-    const findOrders = await query('SELECT * FROM cart WHERE isOrder = true ORDER BY date DESC');
+    console.log("admin")
+    q = 'SELECT * FROM cart WHERE isOrder = true ORDER BY date DESC OFFSET $1 LIMIT $2';
+    const findOrders = await query(q, [offset, limit]);
     for (let i = 0; i < findOrders.rows.length; i++) {
       const item = findOrders.rows[i];
       const orderItems = await query('SELECT * FROM cartItems WHERE cart_id = $1', [item.id]);
@@ -159,7 +199,8 @@ async function ordersList(req, res) {
   } else {
     // lista allar pantanir notanda
     const { username } = req.user;
-    const findOrders = await query('SELECT * FROM cart WHERE isOrder = true AND username = $1 ORDER BY date DESC', [username]);
+    q = 'SELECT * FROM cart WHERE isOrder = true AND username = $1 ORDER BY date DESC OFFSET $2 LIMIT $3';
+    const findOrders = await query(q, [username, offset, limit]);
     for (let i = 0; i < findOrders.rows.length; i++) {
       const item = findOrders.rows[i];
       const orderItems = await query('SELECT * FROM cartItems WHERE cart_id = $1', [item.id]);
@@ -171,7 +212,31 @@ async function ordersList(req, res) {
   if (result.length === 0 || typeof result['order 1'] === 'undefined') {
     return res.json({ orders: 'Engin pöntun til' });
   }
-  return res.json(result);
+
+  const results = {
+    limit: `${limit}`,
+    offset: `${offset}`,
+    items: result,
+    links: {
+      self: {
+        href: `/orders/?offset=${offset}&limit=${limit}`,
+      },
+    },
+  };
+
+  if (offset > 0) {
+    results.links.prev = {
+      href: `/orders/?offset=${offset - limit}&limit=${limit}`,
+    };
+  }
+
+  if (result.length <= limit) {
+    results.links.next = {
+      href: `/orders/?offset=${Number(offset) + limit}&limit=${limit}`,
+    };
+  }
+
+  return res.json(results);
 }
 
 // POST /orders
