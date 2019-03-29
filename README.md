@@ -31,15 +31,34 @@ Til að sjá lista yfir allar mögulegar aðgerðir skal velja `GET` á `/`
     * Hér er dæmi
     ```bash
     {
-    "username": "broskall",
-    "password": "smiley123",
-    "email": "smile@org.com"
+        "username": "broskall",
+        "password": "smiley123",
+        "email": "smile@org.com"
     }
     ```
-* Til að skoða síðu með öllum vörum er hægt að fara á `GET` á `/products`. 
+* Til að skoða síðu með öllum vörum er hægt að fara á `GET` á `/products`. Hægt er að skoða ákveðna vöru með því að gera `GET` á `/products/:id`, þar sem `:id` er auðkennisnúmer viðkomandi vöru. 
+    * Dæmi um skil á vöru:
+    ```bash
+    {
+        "product_no": 30,
+        "title": "Practical Cotton Ball",
+        "price": 903,
+        "text": "Alias consectetur modi doloribus harum quia vel dolor. Sed autem occaecati veritatis et vel quisquam deleniti laboriosam. Distinctio dolores aperiam quia praesentium laborum dolore libero ut possimus. Repudiandae qui illo vitae non enim corporis.\n \rUt voluptatem accusamus alias exercitationem. Impedit et aliquam eveniet. Itaque explicabo ullam ad architecto ut commodi nostrum dolorem ipsam. At maxime incidunt doloremque et cum. Occaecati nesciunt neque quas natus doloremque nostrum nam.\n \rDeserunt quibusdam assumenda molestiae. Necessitatibus cupiditate sit et sequi cupiditate qui eum molestiae voluptas. Adipisci id quae.",
+        "imgurl": "https://res.cloudinary.com/dp9flaggu/image/upload/v1553871937/x3n0sg1gt3g8crijke2t.jpg",
+        "date": "2019-03-29T15:06:02.048Z",
+        "category": "Electronics"
+    }
+    ```
 * Hægt er að leita að öllum vörum í ákveðnum flokki með því að gera `GET` á `/products?category={category}`, þar sem `{category}` er heiti á viðkomandi flokki. Leitin skilar upplýsingum um allar þær vörur sem viðkomandi flokkur inniheldur.
 * Hægt að leita að vörum með ákveðnu leitarorði með því að gera `GET` á `/products?search={query}`, þar sem `{query}` er viðkomandi leitarstrengur. Leitin skilar öllum þeim vörum sem innihalda viðkomandi leitarorð, annaðhvort í titli eða texta.
-* Ef notandi vill skoða einhvern sérstakan flokk þá getur hann leitað að honum á `GET` á `/categories`.
+* Ef notandi vill skoða einhvern sérstakan flokk þá getur hann leitað að honum á `GET` á `/categories`. Hægt er að skoða ákveðinn flokk með því að gera `GET` á `/categories/:id`, þar sem `:id` er auðkennisnúmer viðkomandi vöru.
+    * Dæmi um skil á flokki:
+    ```bash
+    {
+        "id": 3,
+        "category": "Tools"
+    }
+    ```
 * Ef notandi vill setja vöru í körfuna sína þá skal hann fara `POST` á `/cart` og bætir við vöru með að skrifa titil hennar eins og t.d.
 
      ``` bash
