@@ -40,13 +40,13 @@ Til að sjá lista yfir allar mögulegar aðgerðir skal velja `GET` á `/`
     * Dæmi um skil á vöru:
     ```bash
     {
-        "product_no": 30,
-        "title": "Practical Cotton Ball",
-        "price": 903,
-        "text": "Alias consectetur modi doloribus harum quia vel dolor. Sed autem occaecati veritatis et vel quisquam deleniti laboriosam. Distinctio dolores aperiam quia praesentium laborum dolore libero ut possimus. Repudiandae qui illo vitae non enim corporis.\n \rUt voluptatem accusamus alias exercitationem. Impedit et aliquam eveniet. Itaque explicabo ullam ad architecto ut commodi nostrum dolorem ipsam. At maxime incidunt doloremque et cum. Occaecati nesciunt neque quas natus doloremque nostrum nam.\n \rDeserunt quibusdam assumenda molestiae. Necessitatibus cupiditate sit et sequi cupiditate qui eum molestiae voluptas. Adipisci id quae.",
-        "imgurl": "https://res.cloudinary.com/dp9flaggu/image/upload/v1553871937/x3n0sg1gt3g8crijke2t.jpg",
-        "date": "2019-03-29T15:06:02.048Z",
-        "category": "Electronics"
+        "product_no": 65,
+        "title": "Handcrafted Concrete Car",
+        "price": 471,
+        "text": "Debitis dolor distinctio adipisci. Minus maxime natus consequatur optio et porro temporibus et sed. Quos et ut at et excepturi. Et quisquam fugiat fuga.\n \rTotam sunt veritatis veritatis dolorem nostrum quis ex ab. Porro qui molestias rem tenetur tempore beatae quo. Qui molestias in. Ea inventore porro laborum reprehenderit repellendus. Ut et non quo consequatur doloribus. Placeat iusto in.\n \rBeatae quisquam voluptas architecto accusantium eligendi. Mollitia et id nihil facilis ex a. Voluptate in nisi. Exercitationem qui consequatur architecto.",
+        "imgurl": "https://res.cloudinary.com/dp9flaggu/image/upload/v1553872137/cpjh38viub9donsev7dw.jpg",
+        "date": "2019-03-29T15:09:18.721Z",
+        "category": "Industrial"
     }
     ```
 * Hægt er að leita að öllum vörum í ákveðnum flokki með því að gera `GET` á `/products?category={category}`, þar sem `{category}` er heiti á viðkomandi flokki. Leitin skilar upplýsingum um allar þær vörur sem viðkomandi flokkur inniheldur.
@@ -55,8 +55,8 @@ Til að sjá lista yfir allar mögulegar aðgerðir skal velja `GET` á `/`
     * Dæmi um skil á flokki:
     ```bash
     {
-        "id": 3,
-        "category": "Tools"
+        "id": 1,
+        "category": "Industrial"
     }
     ```
 * Ef notandi vill setja vöru í körfuna sína þá skal hann fara `POST` á `/cart` og bætir við vöru með að skrifa titil hennar eins og t.d.
