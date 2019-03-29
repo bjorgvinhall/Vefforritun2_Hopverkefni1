@@ -12,7 +12,6 @@ Nemendur og notendanöfn verkefnis:
     * mmj8@hi.is
 
 ## Setja upp verkefnið
-
 ```bash
 > git clone https://github.com/bjorgvinhall/vef2-hop1
 > cd vef2-hop1 # opna skjalið þar sem verkefni er í
@@ -21,6 +20,7 @@ Nemendur og notendanöfn verkefnis:
 > node faker.js # búa til gögn og sett í gagnagrunninn
 > nodemon app.js # keyrt verkefnið
 ```
+Búa þarf til postgresql gagnagrunn (t.d. createdb h1) og setja tengistreng í skrá sem heitir .env (búa þarf þess skrá til). Sjá dæmi í .env_example.
 
 ## Dæmi um notkun
 
