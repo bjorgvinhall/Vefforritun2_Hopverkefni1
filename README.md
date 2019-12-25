@@ -2,6 +2,8 @@
 
 ## Verkefnið okkar, keyrandi á vefnum
 Hér er hægt að skoða verkefnið okkar, það tekur smá stund fyrir verkefnið að byrja að keyra eftir að þið opnið linkinn
+
+Við mælum með að skoða verkefnið með forriti eins og Postman eða einhverjum JSON formatter þar sem þetta er vefþjónusta og öll gögn eru á JSON-formi.
 * https://bjorgvin-hop1.herokuapp.com/ 
 
 
