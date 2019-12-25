@@ -1,5 +1,10 @@
 # Hópverkefni 1
 
+## Verkefnið okkar, keyrandi á vefnum
+Hér er hægt að skoða verkefnið okkar, það tekur smá stund fyrir verkefnið að byrja að keyra eftir að þið opnið linkinn
+* https://bjorgvin-hop1.herokuapp.com/ 
+
+
 ## Hópmeðlimir
 Nemendur og notendanöfn verkefnis: 
 * Björgvin Hall
